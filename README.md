@@ -6,7 +6,7 @@ A single-player, browser-only god game prototype inspired by terrain shaping and
 
 Run `python -m http.server 8000` in this directory and open `http://localhost:8000`. No package install or build step is required. GitHub Pages can publish directly from the repository root on `main`.
 
-The Verdant is the human player; the Ember is a simulated rival. Raise and lower ground, bloom farmland, reveal your influence or blight crops. Settlements produce food, grow and change allegiance gradually. Visible followers choose activities from fuzzy utility scores based on hunger, fatigue, danger, devotion and local needs.
+The Verdant is the human player; the Ember is a simulated rival. Raise the marked 3×3 starter patch for a village within a few seconds. Elsewhere, raise and lower ground patches to prepare level, fertile sites near existing villages. Bloom farmland, reveal your influence or blight crops. Select Inspect worshipper to see an individual’s needs and current decision. Settlements produce food, grow and change allegiance gradually. Visible followers choose activities from fuzzy utility scores based on hunger, fatigue, danger, devotion and local needs.
 
 ## Prototype boundaries
 
