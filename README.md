@@ -1,6 +1,6 @@
 # The Living Land
 
-A single-player, browser-only god game prototype inspired by terrain shaping and emergent worship. All terrain, vegetation, buildings and followers are drawn at runtime on Canvas. A numeric world seed reproduces the initial terrain; append `?seed=12345` to the URL to try one. Terrain hashing uses integer arithmetic rather than transcendental functions, although this alone does not make the full simulation deterministic across clients.
+A single-player, browser-only god game prototype inspired by terrain shaping and emergent worship. All terrain, vegetation, buildings, water detail, followers and effects are drawn at runtime on Canvas. The visual system uses height dependent cliffs, coastal bands, pine silhouettes, modular roofs, field furrows, smoke and particle rings; there are no external image assets. A numeric world seed reproduces the initial terrain; append `?seed=12345` to the URL to try one. Terrain hashing uses integer arithmetic rather than transcendental functions, although this alone does not make the full simulation deterministic across clients.
 
 ## Play locally
 
