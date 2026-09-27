@@ -100,10 +100,10 @@ function drawPlot(plot,p,z,time){let owner=settlements[plot.settlement]?.owner||
 }
 function drawTerrain(t,x,y,p,z,time){let h=t.h,w=TW*z,half=TH*z,top={x:p.x,y:p.y-half},right={x:p.x+w,y:p.y},bottom={x:p.x,y:p.y+half},left={x:p.x-w,y:p.y};
  if(!h){let n=hash(x,y,seed+20);if(n>.77){let shimmer=Math.sin(time*1.2+x*.65+y*.54)*2*z;line(p.x-6*z,p.y+shimmer,p.x+2*z,p.y+shimmer,'#80b4bb55',.7*z)}return}
- let rightHeight=at(x+1,y)?.h||0,leftHeight=at(x,y+1)?.h||0,dropR=clamp(h-rightHeight,0,6)*LIFT*z,dropL=clamp(h-leftHeight,0,6)*LIFT*z;
- if(dropL>0)polygon([left,bottom,{x:bottom.x,y:bottom.y+dropL},{x:left.x,y:left.y+dropL}],shade(terrainColor(t,x,y),-38),'#173c3d55');
- if(dropR>0)polygon([bottom,right,{x:right.x,y:right.y+dropR},{x:bottom.x,y:bottom.y+dropR}],shade(terrainColor(t,x,y),-56),'#15373766');
- polygon([top,right,bottom,left],terrainColor(t,x,y),'#193f3c30');
+ let dropR=h*LIFT*z,dropL=h*LIFT*z;
+ polygon([left,bottom,{x:bottom.x,y:bottom.y+dropL},{x:left.x,y:left.y+dropL}],shade(terrainColor(t,x,y),-25),'#284e4b33');
+ polygon([bottom,right,{x:right.x,y:right.y+dropR},{x:bottom.x,y:bottom.y+dropR}],shade(terrainColor(t,x,y),-38),'#284e4b33');
+ polygon([top,right,bottom,left],terrainColor(t,x,y),'#2f4e4933');
  if(dropR>11*z)for(let d=9*z;d<dropR;d+=8*z)line(bottom.x+2*z,bottom.y+d,right.x-2*z,right.y+d,'#cad1ad22',.7*z);
  if(t.h===1&&[at(x-1,y),at(x+1,y),at(x,y-1),at(x,y+1)].some(n=>n&&!n.h))line(left.x+5*z,left.y,right.x-5*z,right.y,'#eee0ac55',1*z);
  if(t.prepared&&!t.plot){ctx.fillStyle='#e7dba844';ctx.beginPath();ctx.arc(p.x,p.y,2*z,0,7);ctx.fill()}
