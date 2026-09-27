@@ -11,3 +11,7 @@ The Verdant is the human player; the Ember is a simulated rival. Raise the marke
 ## Prototype boundaries
 
 This is a playable simulation, not yet a networked game. Settlement population is abstracted; a limited number of visible followers represents it. The rival chooses occasional blessings or religious influence. World state currently resets on refresh. See `DESIGN_NOTES.md` for a comparison with the supplied manual and the next gameplay priorities. For multiplayer, have the server generate and send the canonical heightmap and other initial world data on join; then send validated terrain edits and authoritative settlement/follower snapshots. Even integer-based terrain generation should not be relied on as the sole synchronization mechanism for the changing world. Extract simulation into an authoritative server module and add reconnectable snapshots and persistent rooms.
+
+## Guided first run
+
+A first-time visitor gets a ten-step interactive tutorial. Each step advances only after the matching in-game action: raise the marked site, watch the village form, Bloom it, inspect a worshipper, find Ashfall, cast Revelation, start a pilgrimage, use Earthquake, repair with Bloom, and return to Settle & Build. The earthquake and repair steps give a small one-time faith boost so the lesson does not stall. Players can skip or restart at any time; the header button replays it. Add `?tutorial=1` to force the tutorial on a returning browser.
