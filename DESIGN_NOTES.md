@@ -10,7 +10,7 @@ The supplied *Populous* manual is a scan. Page numbers below refer to its printe
 | Leader and Knight (pp. 10, 18, 21–22) | A concentrated population can become a risky mobile strategic tool. | Missing. Add a leader, then an optional champion who can raid farms and temples, with real population cost. |
 | Swamps, rocks, ruined land, earthquakes, fire, volcano, flood (pp. 9–10, 17–20) | Terrain can be damaged, repaired or reshaped; miracles have counters. | Partial: blight and bloom affect farming. Add visible damage, repairs, rocks, quake and flood only after the core land loop is satisfying. |
 | Terrain worlds have different growth and survival rules (pp. 34–35) | New maps demand new strategies. | Missing. Add biome rules and balanced generation, with clear on-screen modifiers. |
-| Population and mana bars, view commands and inspection shield (pp. 14–15, 23–24) | The player understands causes and can respond. | Partial: population, faith, village cards and worshipper inspection exist. Add a minimap, alerts and a direct jump to threatened settlements. |
+| Population and mana bars, view commands and inspection shield (pp. 14–15, 23–24) | The player understands causes and can respond. | Partial: population, faith, village cards and worshipper inspection exist. Settlement cards now jump to that location; add a minimap and alerts for threatened settlements. |
 
 ## New systems specific to this game
 
