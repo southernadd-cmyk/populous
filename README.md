@@ -1,6 +1,6 @@
 # The Living Land
 
-A single-player, browser-only god game prototype inspired by terrain shaping and emergent worship. All terrain, vegetation, buildings and followers are drawn at runtime on Canvas. A numeric world seed reproduces the initial terrain; append `?seed=12345` to the URL to try one.
+A single-player, browser-only god game prototype inspired by terrain shaping and emergent worship. All terrain, vegetation, buildings and followers are drawn at runtime on Canvas. A numeric world seed reproduces the initial terrain; append `?seed=12345` to the URL to try one. Terrain hashing uses integer arithmetic rather than transcendental functions, although this alone does not make the full simulation deterministic across clients.
 
 ## Play locally
 
@@ -10,4 +10,4 @@ The Verdant is the human player; the Ember is a simulated rival. Raise and lower
 
 ## Prototype boundaries
 
-This is a playable simulation, not yet a networked game. Settlement population is abstracted; a limited number of visible followers represents it. The rival chooses occasional blessings or religious influence. World state currently resets on refresh, and the current simulation uses seeded generation but random simulation decisions are dependent on action order. Before multiplayer, extract simulation into an authoritative server module, move player actions into validated commands and add reconnectable snapshots and persistent rooms.
+This is a playable simulation, not yet a networked game. Settlement population is abstracted; a limited number of visible followers represents it. The rival chooses occasional blessings or religious influence. World state currently resets on refresh. For multiplayer, have the server generate and send the canonical heightmap and other initial world data on join; then send validated terrain edits and authoritative settlement/follower snapshots. Even integer-based terrain generation should not be relied on as the sole synchronization mechanism for the changing world. Extract simulation into an authoritative server module and add reconnectable snapshots and persistent rooms.
