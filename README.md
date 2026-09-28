@@ -1,39 +1,71 @@
 # The Living Faith
 
-A real-time, browser-based god game about shaping land, growing followers, and building stone circles at sacred sites. It has no combat. [Play the published version](https://southernadd-cmyk.github.io/populous/).
+A browser god game about shaping land, growing villages, guiding followers, and building stone circles. [Play the published version](https://southernadd-cmyk.github.io/populous/).
 
-The world is **64×48 tiles**. The two villages begin on opposite sides of a broad central crossing. Five sacred sites form upper, lower and central routes, with wild followers scattered along the approaches. Every new world has paired mountain ridges, hills, two winding rivers and broad lakes connected to them. Settlements can grow to 72 people and 12 huts per tribe. Click the minimap to jump the camera between fronts, or use Home to return to your shaman.
+## Goal
 
-## The gameplay loop
+Be the first tribe to earn **4,000 Devotion** and hold a festival in each of **North, Crossing, and South**. Your rival, Ember, has the same goal. Blessed homes and finished stone circles earn Devotion over time. The first festival in each region adds 900 bonus Devotion to its normal award. A region stays complete even if you later lose its site.
 
-Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Families grow automatically as workers support the settlement. Level ground prepares a hut for a **house** (four clear neighbours, three family growth steps, and at least 25 seconds since completion), a **fort** (six neighbours, six family growth steps, a clear 2×2 footprint, at least 85 seconds old and 35 seconds after the house), then a **castle** (all eight neighbours, ten family growth steps, a clear 3×3 footprint, at least 160 seconds old and 50 seconds after the fort). Supported families keep progressing even if the tribe reaches its population cap; a new brave appears only when housing is available. The game advances through these stages one at a time. A home claims its larger footprint as it grows, so other buildings and terrain edits cannot overlap it. Housing increases from 6 to 9, 13 and 18; blessed homes also produce more Faith and Devotion at each stage.
+**Faith** pays for actions and festivals. Followers generate a little Faith; blessed homes, worshippers, and finished stone circles add more. You start with 45 Faith and can store up to 160. Faith and Devotion are separate: earning or spending Faith does not change your score.
 
-Followers provide a little **Faith** to spend on shaping land, building stone circles, blessing huts, converting wildmen, bridges and rituals. **Devotion** is the victory score, earned by productive blessed villages and finished stone circles. The first tribe to reach **4,000 Devotion and complete all three regional faith works** wins. A faith work is a festival at a prepared stone circle or blessed home near a rune in the North, Crossing, or South. Its first festival awards a large 900-Devotion bonus, so preparing and celebrating across the map drives the score as well as the victory condition. Merely waiting with a large population does not earn Devotion or complete a region.
+## First steps
 
-Sacred sites start as empty glowing runes. Flatten a clear **2×2 foundation containing the rune**, bring the shaman within three tiles, select **Build Stone**, and click the foundation's top-left tile. This spends 20 Faith and reserves that exact footprint. Nearby followers walk there and build the circle automatically. A progress bar fills as the standing stones rise; the finished circle is consecrated and starts earning Faith and Devotion. A rival shaman near the site slows construction. Each site can hold one circle, and players can choose among four possible 2×2 foundations around its rune.
+1. Find a clear, level 2×2 plot near your village. Choose **Plan Hut** and click its top-left tile, or shape one tile with Raise or Lower Land to create a new plot. Braves gather wood and build it.
+2. Bless a completed home to make it earn Devotion and Faith. Level nearby land and keep workers close to help it grow from a hut to a house, fort, and castle.
+3. Prepare a festival site near each region's rune. Build a stone circle on a rune, or grow a blessed home close to it. Assign two worshippers, maintain the site's belief, and celebrate when the Festival button becomes available.
 
-Inspect a blessed hut or an owned stone to set its policy:
+The opening **How to Play** guide has seven tabs: Goal, Land & homes, Followers, Stones, Festivals, Spells, and Controls. Open it again at any time; the match pauses while you read.
 
-| Policy | Effect |
+## Land, homes, and followers
+
+The world spans 64×48 tiles with five sacred runes, hills, mountains, connected rivers, and lakes. Plan Hut needs a clear, level 2×2 square near a completed friendly building or owned circle. Trees, water, structures, and runes block a plot. Settlers also plan huts automatically on suitable land, especially land you have just shaped. Raise and Lower each change **one tile by one level** for 4 Faith. The land spell preview highlights a newly available plot, stone foundation, or possible home upgrade.
+
+A home grows automatically when nearby workers have supported it enough, the required neighbours match its height, and enough time has passed since construction. Forts and castles also need clear space for a larger footprint.
+
+| Stage | Level neighbours | Growth | Time since completion | Beds added |
+| --- | ---: | ---: | --- | ---: |
+| Hut | — | — | Built | 6 |
+| House | 4 | 3 | 25 seconds | 9 |
+| Fort | 6 and clear 2×2 | 6 | 85 seconds; 35 since house | 13 |
+| Castle | 8 and clear 3×3 | 10 | 160 seconds; 50 since fort | 18 |
+
+Growth counts periods of worker support. It continues even at full housing, although a new brave can appear only when there is room. Each home adds the beds shown above, and each tribe can hold at most 72 people. Inspect a home for its next milestone.
+
+Braves choose work according to nearby construction, housing, staffing, and belief. They gather wood, build, tend sites, or stay near homes and stones. Inspect a blessed home or owned circle to set its policy:
+
+| Policy | What it does |
 | --- | --- |
-| **Grow** | Followers build, gather, support local belief, and plan new huts on nearby level plots. |
-| **Worship** | Assigns two followers to the site for more Faith and Devotion; fewer builders remain. |
-| **Guard** | At sacred stones, keeps one caretaker and one worshipper nearby to slow a rival capture. |
+| Grow | Releases assigned worshippers to work. Available level plots can attract new homes, and nearby workers support belief and growth. |
+| Worship | Assigns up to two braves. Once they reach the site, they increase Faith and Devotion; two present worshippers are needed for a festival. |
+| Guard | At a stone circle, assigns one keeper and one worshipper. The keeper helps resist a rival shaman; switch to Worship when preparing a festival. |
 
-A finished circle has a visible, owner-coloured spiritual health bar. Local Faith restores its health; a visiting rival shaman drains it and can convert the completed structure. Move your shaman to defend it, select Guard, or spend Faith on a protective Ritual. Empty sacred ground cannot be claimed or converted by a Ritual. A festival turns 70 stored Faith into an immediate Devotion surge when local belief reaches 55, two assigned worshippers arrive, and the site is healthy. The tribe then waits 60 seconds before another celebration. Four aligned terrace tiles give a stone its full production bonus; **seven** are needed for its first regional festival. A blessed home within 5.5 tiles of a rune qualifies after reaching a house in North or South, or a fort at the Crossing. Repeated festivals in the same region earn Devotion but do not complete another faith work.
+Policies leave at least three workers available. If there are not enough free braves yet, assignments fill as people become available.
 
-The rival can favour a village network or building circles at sacred sites. Its shaman shapes uneven sacred ground, spends Faith on construction and regional terraces, and its followers build using the same rules. It expands, chooses policies and holds festivals under the same regional victory requirements. Approaching rival shamans trigger an event so their pressure is visible.
+## Stone circles and festivals
 
-## Follower decisions
+Each rune begins as empty sacred ground. Prepare a clear, level **2×2 foundation containing the rune**, bring your shaman within three tiles, choose **Build Stone**, and click the foundation's top-left tile. Building costs 20 Faith. Braves finish the circle; a nearby rival shaman slows construction. A finished circle earns Faith and Devotion and has an owner-coloured spiritual health bar. A rival shaman close to it can drain that bar and take the circle when it reaches zero. Your shaman, local worship, a Guard keeper, or a protective Ritual help keep it yours.
 
-Unassigned followers now weigh three jobs: **build** an unfinished hut or stone circle, **tend** belief at a productive site, or **support** a village or circle by staying nearby. Each option gets a graded score from distance, belief, housing pressure, staffing, construction progress and rival proximity. A follower keeps an intention briefly before reconsidering, and a worker carrying wood finishes that delivery. This keeps assignments responsive without sending people back and forth every frame. Player choices for Grow, Worship and Guard still reserve their requested followers; the scoring guides the remaining workers.
+The eight tiles around a rune are its terrace. Four tiles matching the rune's height give the full production bonus; seven prepare the circle for its **first regional festival**. You can also use a blessed home within 5.5 tiles of a rune. A North or South home must reach at least house level, and a Crossing home must reach fort level.
 
-## Controls and running locally
+Choose **Inspect** on your blessed home or finished circle to hold a festival. It needs 55 belief, two assigned worshippers who have arrived, a healthy site, 70 Faith, and the end of your tribe's 60-second cooldown. Belief rises with a completed friendly hut and two nearby working braves; a circle can also stay healthy with two present worshippers and four matching terrace tiles. A festival lowers the site's belief by 18. It also restores 12 spiritual health at a circle. Later festivals still award Devotion, but only the first in each region counts toward the goal.
 
-The opening screen uses a snapshot of the current Three.js world and a tabbed field guide covering the objective, land, followers, faith and controls. Open the same guide from **How to Play** at any time; the match pauses while it is open. There are no one-click suggestion cards in the game. The objective bar shows regional progress, while Inspect shows the requirements of a chosen site.
+## Commands and spells
 
-Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its land, family growth and age milestones. Completed sites offer Grow / Worship / Guard controls. Drag to move the map in the same direction as the pointer, right drag to rotate, scroll to zoom; click the minimap to pan across the world or use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
+Choose a command or spell in the bottom bar, then click its target. **Move Shaman** sends the shaman to land; **Plan Hut** marks a valid plot for free; **Build Stone** costs 20 Faith and needs the shaman within three tiles of the rune; **Inspect** opens a site panel or identifies what you clicked.
 
-Terrain elevations, decorative pebbles and trees render in batches. A single Raise or Lower updates the affected terrain instance, leaving the rest of the map in place. The minimap refreshes at a lower rate than the game simulation.
+| Spell | Cost | Effect |
+| --- | ---: | --- |
+| Convert | 20 Faith | Turn a grey wildman into your brave if housing allows. |
+| Bless Hut | 30 Faith | Bless a finished friendly home so it earns Faith and Devotion. |
+| Ritual | 30 / 45 Faith | Restore 35 health and shield your circle for 12 seconds, or remove 35 health from a rival's built circle. Bring your shaman beside it to convert it at zero health. |
+| Raise Land | 4 Faith | Raise one tile by one level, up to height 5. |
+| Lower Land | 4 Faith | Lower one tile by one level, down to water at height 0. |
+| Land Bridge | 30 Faith | Turn water along a short straight line into low land. |
 
-The game uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000` in a WebGL 2 browser. Players need no installation or account. Run the logic and rendering checks with `node --test tests/*.test.*` when developing.
+For Convert, Bless, Raise, Lower, and Land Bridge, the shaman must be within 5.5 tiles of the clicked tile. Ritual needs the shaman within three tiles of a completed circle. Invalid targets do not spend Faith.
+
+Left drag pans with the pointer, right drag rotates, and scrolling or the ± buttons zoom. Click the minimap to move the camera, use its arrow keys when focused, or press **Home** to find the shaman. Pause and the 1×, 2×, 3× speed setting control simulation time. **New World** generates a fresh map.
+
+## Running locally
+
+The game uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000` in a WebGL 2 browser. Run checks with `node --test tests/*.test.*`.

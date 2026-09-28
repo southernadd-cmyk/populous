@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>The Living Faith — shape a living world</title>
-  <link rel="stylesheet" href="style.css?v=46">
+  <link rel="stylesheet" href="style.css?v=47">
 </head>
 <body>
 <div id="app">
   <header>
     <div class="brand"><small>THE LIVING LAND</small><h1>THE LIVING FAITH</h1></div>
-    <div class="readouts"><span>YOUR TRIBE <b id="population">0</b></span><span>ENEMY <b id="enemy">0</b></span><span>FAITH <b id="faith">0</b></span><span>DEVOTION <b id="devotion">0</b></span></div>
+    <div class="readouts"><span>YOUR TRIBE <b id="population">0</b></span><span>EMBER <b id="enemy">0</b></span><span>FAITH <b id="faith">0</b></span><span>DEVOTION <b id="devotion">0</b></span></div>
     <div class="header-buttons"><button id="pause">PAUSE</button><button id="speed">1× SPEED</button><button id="help">HOW TO PLAY</button></div>
   </header>
   <main>
@@ -28,53 +28,89 @@
 </div>
 <dialog id="instructions" aria-labelledby="introTitle">
   <div class="intro-art" id="introArt" aria-hidden="true">
-    <span class="intro-kicker">A WORLD YOU CAN SHAPE</span>
-    <div class="intro-art-title"><span>THE LIVING LAND</span><strong>THE LIVING<br>FAITH</strong><p>Grow a people. Raise the earth.<br>Carry faith across the world.</p></div>
-    <div class="intro-art-caption"><span>64 × 48 LIVING TILES</span><span>NO COMBAT</span></div>
+    <span class="intro-kicker">SHAPE A WORLD · GUIDE A TRIBE</span>
+    <div class="intro-art-title"><span>THE LIVING LAND</span><strong>THE LIVING<br>FAITH</strong><p>Build villages. Shape sacred ground.<br>Celebrate across three regions.</p></div>
+    <div class="intro-art-caption"><span>64 × 48 TILE WORLD</span><span>FIVE SACRED SITES</span></div>
   </div>
   <div class="intro-guide">
-    <div class="intro-heading"><span class="intro-eyebrow">FIELD GUIDE</span><h2 id="introTitle">Shape the story</h2><p>Your followers build and worship on their own. You choose where their world grows.</p></div>
+    <div class="intro-heading"><span class="intro-eyebrow">FIELD GUIDE</span><h2 id="introTitle">How to play</h2><p>Choose a topic below. The world pauses while this guide is open.</p></div>
     <div class="intro-tabs" role="tablist" aria-label="How to play">
-      <button id="tab-overview" role="tab" aria-controls="panel-overview" aria-selected="true" tabindex="0" data-guide-tab="overview">Overview</button>
-      <button id="tab-land" role="tab" aria-controls="panel-land" aria-selected="false" tabindex="-1" data-guide-tab="land">Land</button>
+      <button id="tab-overview" role="tab" aria-controls="panel-overview" aria-selected="true" tabindex="0" data-guide-tab="overview">Goal</button>
+      <button id="tab-land" role="tab" aria-controls="panel-land" aria-selected="false" tabindex="-1" data-guide-tab="land">Land &amp; homes</button>
       <button id="tab-followers" role="tab" aria-controls="panel-followers" aria-selected="false" tabindex="-1" data-guide-tab="followers">Followers</button>
-      <button id="tab-faith" role="tab" aria-controls="panel-faith" aria-selected="false" tabindex="-1" data-guide-tab="faith">Faith</button>
+      <button id="tab-stones" role="tab" aria-controls="panel-stones" aria-selected="false" tabindex="-1" data-guide-tab="stones">Stones</button>
+      <button id="tab-festivals" role="tab" aria-controls="panel-festivals" aria-selected="false" tabindex="-1" data-guide-tab="festivals">Festivals</button>
+      <button id="tab-spells" role="tab" aria-controls="panel-spells" aria-selected="false" tabindex="-1" data-guide-tab="spells">Spells</button>
       <button id="tab-controls" role="tab" aria-controls="panel-controls" aria-selected="false" tabindex="-1" data-guide-tab="controls">Controls</button>
     </div>
     <div class="intro-pages">
       <section id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
-        <h3>One world. Three regions.</h3>
-        <p>Earn <b>4,000 Devotion</b> and hold a festival in the <b>North, Crossing and South</b> before Ember does. The runes mark each region. A growing village, a stone circle, or a mix can carry your faith there.</p>
-        <ol class="intro-steps"><li><b>Shape land</b><span>Make room for homes and level sacred terraces.</span></li><li><b>Guide followers</b><span>Bless homes; choose Grow, Worship or Guard at a site.</span></li><li><b>Hold festivals</b><span>Prepare a site in each region and celebrate.</span></li></ol>
+        <h3>Win the faith race</h3>
+        <p>Reach <b>4,000 Devotion</b> and complete a festival in each region: <b>North, Crossing and South</b>. Both conditions are required. Ember follows the same rules; the first tribe to complete both wins.</p>
+        <div class="intro-definitions"><p><b>Faith</b> is what you spend. Followers produce a little over time; blessed homes, worshippers and built stone circles add more. You start with 45 Faith and can store up to 160.</p><p><b>Devotion</b> is your score. Finished stone circles and blessed homes earn it over time. The first festival in each region adds 900 bonus Devotion on top of its normal award.</p></div>
+        <p>The five glowing runes mark sacred sites: two in the North, one at the Crossing and two in the South. Complete a region by celebrating at a prepared home near one of its runes or at a stone circle built on that rune. You can expand villages, develop stone circles, or combine both.</p>
+        <ol class="intro-steps"><li><b>Grow a village</b><span>Shape a level plot, let braves build a hut, then bless the finished home.</span></li><li><b>Prepare a festival site</b><span>Build a stone circle on a rune or grow a blessed home near one. Assign two worshippers and keep the site healthy.</span></li><li><b>Celebrate across the map</b><span>Hold a festival in North, Crossing and South while your sites earn 4,000 Devotion.</span></li></ol>
+        <p>Watch the top bar for Faith, Devotion and regional progress. Your shaman travels to shape land and cast spells; braves gather wood, build, support homes and worship.</p>
       </section>
       <section id="panel-land" role="tabpanel" aria-labelledby="tab-land" tabindex="0" hidden>
-        <h3>Level ground brings growth</h3>
-        <p>Raise or Lower changes <b>one tile for 4 Faith</b>. A clear, level <b>2×2</b> plot near your settlement or owned stone draws a new hut. Followers gather wood and finish it. Hover with a land spell to preview useful tiles.</p>
-        <div class="intro-tiers"><span>HUT</span><span>HOUSE</span><span>FORT</span><span>CASTLE</span></div>
-        <p>A family needs clear level neighbours, family growth and time to advance: a house needs <b>4 tiles / 3 growth / 25s</b>; a fort needs <b>6 / 6 / 85s</b> and a clear 2×2 footprint; a castle needs <b>8 / 10 / 160s</b> and a clear 3×3 footprint. Each stage also matures before the next. Inspect a home for its progress.</p>
-        <p>Use Land Bridge to open routes over the rivers and lakes.</p>
+        <h3>Make room for homes</h3>
+        <p>A new hut needs a <b>clear, level 2×2 plot</b> near one of your completed buildings or owned stone circles. Trees, water, other structures and sacred runes block a plot. Choose <b>Plan Hut</b> and click its top-left tile for free. Settlers can also plan huts on available plots, especially ones you have just shaped. Braves gather wood and build; a planned hut does not earn Devotion until it is finished and blessed.</p>
+        <p><b>Raise Land</b> and <b>Lower Land</b> each change one tile by one height level for 4 Faith. Height 0 is water; land ranges from 1 to 5. Match the surrounding height to open plots and improve existing homes. Hover with a land spell to preview a new plot or building upgrade. You cannot reshape an occupied tile or a built stone foundation.</p>
+        <h4>Home upgrades</h4>
+        <p>Nearby working braves help a household grow. A home upgrades automatically when its land, household growth and age all meet the next row. The age is measured from when the hut was completed. The fort and castle also need time since the previous upgrade.</p>
+        <div class="intro-table-wrap"><table class="intro-table"><thead><tr><th>Stage</th><th>Level neighbours</th><th>Growth</th><th>Age</th><th>Beds added</th></tr></thead><tbody><tr><th>Hut</th><td>—</td><td>—</td><td>Built</td><td>6</td></tr><tr><th>House</th><td>4</td><td>3</td><td>25s</td><td>9</td></tr><tr><th>Fort</th><td>6 + clear 2×2</td><td>6</td><td>85s + 35s after house</td><td>13</td></tr><tr><th>Castle</th><td>8 + clear 3×3</td><td>10</td><td>160s + 50s after fort</td><td>18</td></tr></tbody></table></div>
+        <p>“Growth” counts periods when nearby braves support the home. It can continue when your tribe is full, but a new brave appears only when housing allows it. Each home adds the beds shown above; your tribe can hold at most <b>72 people</b>. Forts and castles claim larger footprints, so keep that space clear. Inspect a home to see its progress toward the next stage.</p>
       </section>
       <section id="panel-followers" role="tabpanel" aria-labelledby="tab-followers" tabindex="0" hidden>
-        <h3>A tribe with its own plans</h3>
-        <p>Braves choose nearby building, tending and village support according to need. They gather wood, build open plots and help families grow. <b>Convert</b> a grey wildman near your shaman for 20 Faith when you have room for them.</p>
-        <p><b>Bless</b> a finished home for 30 Faith to produce Devotion. Inspect a blessed home or stone circle to set its policy:</p>
-        <div class="intro-policy"><p><b>GROW</b> keeps workers available for building and local belief.</p><p><b>WORSHIP</b> assigns two followers for faster Faith and Devotion.</p><p><b>GUARD</b> gives a stone one caretaker and one worshipper against a rival shaman.</p></div>
+        <h3>Guide, then let them work</h3>
+        <p>Your <b>shaman</b> moves where you send them and casts spells within range. <b>Braves</b> make their own decisions: they gather wood and build projects, tend low-belief sites, or stay near homes and stones to support them. Their choice depends on distance and what needs attention. Grey <b>wildmen</b> can join your tribe with Convert if you have housing.</p>
+        <p>Use <b>Inspect</b> on a blessed home or your completed stone circle to set a policy. A policy assigns people automatically; you do not need to click individual braves.</p>
+        <div class="intro-policy"><p><b>Grow</b> releases assigned worshippers to work. Nearby level plots can attract new huts; working braves support the site’s belief and household growth.</p><p><b>Worship</b> assigns up to two braves to the site. They must arrive before their extra Faith and Devotion count, and two present worshippers are required for a festival. Fewer workers remain available to build.</p><p><b>Guard</b> is available at your stone circles. It assigns one keeper and one worshipper. The keeper helps resist a visiting rival shaman, but one worshipper is not enough for a festival.</p></div>
+        <p>The game keeps at least three braves free for work when assigning worshippers or a keeper. If a site cannot fill its policy yet, it will assign people as they become available.</p>
       </section>
-      <section id="panel-faith" role="tabpanel" aria-labelledby="tab-faith" tabindex="0" hidden>
-        <h3>Build a faith work</h3>
-        <p>Faith pays for actions; productive blessed homes and completed circles earn Devotion. To build at a glowing rune, level a <b>2×2 foundation containing it</b>, bring your shaman within three tiles, then choose Build Stone and click the plot’s top-left tile. The circle costs 20 Faith; followers finish it.</p>
-        <p>For a <b>regional festival</b>, a home within 5½ tiles of a rune must be a house in North or South, or a fort at Crossing. A stone needs <b>seven of its eight terrace tiles</b> level with its centre. The site also needs 55 belief, two present worshippers, healthy support and 70 Faith. Festivals share a 60-second cooldown.</p>
-        <p>A rival shaman can drain an owned circle’s coloured spirit bar. Bring your shaman, set Guard or use Ritual to protect it. There is no combat.</p>
+      <section id="panel-stones" role="tabpanel" aria-labelledby="tab-stones" tabindex="0" hidden>
+        <h3>Build and protect a circle</h3>
+        <p>Each glowing rune starts as <b>empty sacred ground</b>. Make a clear, level <b>2×2 foundation containing the rune</b>. There are four possible positions for that square. Move your shaman within three tiles of the rune, choose <b>Build Stone</b>, and click the foundation’s <b>top-left tile</b>. It costs 20 Faith. Braves travel there and build the circle. A rival shaman nearby slows their work.</p>
+        <p>A completed circle produces Faith and Devotion. Its coloured bar then shows <b>spiritual health</b>, rather than building progress. A rival shaman standing close can drain that health. If it reaches zero while the rival is beside the circle, the circle changes owner. Empty runes cannot be claimed with Ritual; they must first be built.</p>
+        <p>Your nearby shaman, local worship and a Guard keeper help the circle recover or resist capture. A protective Ritual restores health and briefly shields it. The circle’s colour shows its owner: green for you, orange for Ember. If you lose one, you can weaken the rival’s built circle with Ritual and bring your shaman beside it to convert it.</p>
+        <p>The eight tiles around the rune form its <b>terrace</b>. Matching four to the centre height gives its full Faith and Devotion production bonus. Matching <b>seven</b> prepares it for its first regional festival. Inspect a terrace tile to see its current alignment.</p>
+      </section>
+      <section id="panel-festivals" role="tabpanel" aria-labelledby="tab-festivals" tabindex="0" hidden>
+        <h3>Complete each region</h3>
+        <p>A festival is held through the <b>Inspect</b> panel of your blessed home or finished stone circle. To mark an uncompleted region, use either a circle with <b>seven level terrace tiles</b>, or a blessed home within <b>5.5 tiles of that region’s rune</b>. A North or South home must be at least a <b>house</b>; a Crossing home must be at least a <b>fort</b>.</p>
+        <h4>When the Festival button becomes available</h4>
+        <ul class="intro-bullets"><li>The site belongs to you and has at least <b>55 belief</b>.</li><li><b>Two assigned worshippers</b> have reached the site. Set Worship and allow them time to travel.</li><li>The site is <b>healthy</b>: a completed friendly hut and two working braves are nearby. A stone can also stay healthy without a hut if two worshippers are present and at least four terrace tiles match.</li><li>You have <b>70 Faith</b>, and your tribe’s 60-second festival cooldown has ended.</li></ul>
+        <p>The first festival in a region permanently marks it complete and awards <b>900 bonus Devotion</b> plus its normal festival award. Later festivals still award Devotion but do not count for another region. A festival lowers that site’s belief by 18; belief recovers when the site is healthy. At a stone it also restores 12 spiritual health. Completing a region remains credited even if you later lose its site.</p>
+        <p>Belief and spiritual health are different: <b>belief</b> shows how well a site is supported and affects its income and festivals; <b>spiritual health</b> is the ownership bar on a stone circle. Inspect the site to see its belief, worshippers, terrace and cooldown.</p>
+      </section>
+      <section id="panel-spells" role="tabpanel" aria-labelledby="tab-spells" tabindex="0" hidden>
+        <h3>Spend Faith where it matters</h3>
+        <p>Select a spell in the bottom bar, then click its target. Your shaman must be within <b>5.5 tiles of the clicked tile</b> for Convert, Bless, Raise, Lower and Land Bridge. Ritual instead needs the shaman within <b>three tiles of a completed circle</b>. Invalid targets do not spend Faith.</p>
+        <div class="intro-actions">
+          <article data-spell="convert"><h4>Convert <span>20 Faith</span></h4><p>Click a grey wildman. They become a brave in your tribe if you have room under your housing limit.</p></article>
+          <article data-spell="bless"><h4>Bless Hut <span>30 Faith</span></h4><p>Click a finished, unblessed home. A blessing makes it earn Devotion and add Faith income; it stays blessed as it grows.</p></article>
+          <article data-spell="ritual"><h4>Ritual <span>30 / 45 Faith</span></h4><p>On your circle, spend 30 Faith to restore 35 spiritual health and shield it for 12 seconds. On Ember’s completed circle, spend 45 to remove 35 health. Bring your shaman right beside it: reducing health to zero while close converts it. Ritual cannot claim an empty rune.</p></article>
+          <article data-spell="raise"><h4>Raise Land <span>4 Faith</span></h4><p>Raise one tile by one level, up to height 5. Raising water makes land; matching heights can open hut plots and strengthen terraces.</p></article>
+          <article data-spell="lower"><h4>Lower Land <span>4 Faith</span></h4><p>Lower one tile by one level, down to water at height 0. Use it to level plots or terraces; lowering land to water cuts a route.</p></article>
+          <article data-spell="bridge"><h4>Land Bridge <span>30 Faith</span></h4><p>Click water to turn water tiles along a line of up to five tiles into low land. Join two shores to give your shaman and braves a route across.</p></article>
+        </div>
       </section>
       <section id="panel-controls" role="tabpanel" aria-labelledby="tab-controls" tabindex="0" hidden>
-        <h3>Command the view</h3>
-        <div class="intro-controls"><p><b>Left drag</b><span>Move the map with your pointer</span></p><p><b>Right drag</b><span>Rotate the view</span></p><p><b>Scroll / ±</b><span>Zoom</span></p><p><b>Minimap / HOME</b><span>Jump across the world / find your shaman</span></p><p><b>Select then click</b><span>Move, inspect, shape or cast</span></p></div>
-        <p>Land spells, conversion, blessing, Ritual and Build Stone need your shaman nearby. Pause any time, or choose 1×, 2× or 3× speed.</p>
+        <h3>Commands and camera</h3>
+        <p>Choose a command in the bottom bar, then click the map. Commands stay selected until you choose another. The small hint below the bar describes the selected action.</p>
+        <div class="intro-actions intro-commands">
+          <article data-command="move"><h4>Move Shaman <span>Free</span></h4><p>Click reachable land to send your shaman there. They walk around water when a land route exists.</p></article>
+          <article data-command="hut"><h4>Plan Hut <span>Free</span></h4><p>Click the top-left tile of a valid, clear 2×2 plot near your settlement or owned circle. Your shaman does not need to stand beside it; braves build it.</p></article>
+          <article data-command="stone"><h4>Build Stone <span>20 Faith</span></h4><p>Click the top-left tile of a level 2×2 foundation containing an empty rune, with your shaman within three tiles of the rune. Braves finish the circle.</p></article>
+          <article data-command="inspect"><h4>Inspect <span>Free</span></h4><p>Click a friendly blessed home or sacred site to view progress and set its policy or hold a festival. Click other objects or land to identify them.</p></article>
+        </div>
+        <div class="intro-controls"><p><b>Left drag</b><span>Pan the map with the pointer</span></p><p><b>Right drag</b><span>Rotate the map</span></p><p><b>Scroll or ±</b><span>Zoom</span></p><p><b>Minimap / Home</b><span>Jump across the world / find your shaman</span></p></div>
+        <p>Click the minimap to move the camera, or focus it and use the arrow keys. Pause stops the simulation; Speed cycles through 1×, 2× and 3×. How to Play opens this guide and pauses the match until you close it. New World resets the map and opens the guide again.</p>
       </section>
     </div>
-    <div class="intro-footer"><span>NO COMBAT · MANY WAYS TO GROW</span><button id="closeHelp" class="intro-play">PLAY THE WORLD <span aria-hidden="true">→</span></button></div>
+    <div class="intro-footer"><span>SHAPE · BUILD · CELEBRATE</span><button id="closeHelp" class="intro-play">PLAY THE WORLD <span aria-hidden="true">→</span></button></div>
   </div>
 </dialog>
-<script type="module" src="src/main.js?v=49"></script>
+<script type="module" src="src/main.js?v=50"></script>
 </body>
 </html>
