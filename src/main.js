@@ -21,7 +21,7 @@ let terrainLevels=[],terrainSlots=null,terrainHeights=null,pebbleSlots=null,pebb
 const instanceTransform=new THREE.Object3D();
 function newShrines(){return SHRINE_SPOTS.map(({x,z})=>({x,z,owner:2,projectOwner:2,progress:0,buildX:null,buildZ:null,spirit:0,lock:0,policy:'grow'}))}
 const rand=(x,y,s=seed)=>{let n=Math.imul(x+11,374761393)+Math.imul(y+23,668265263)+Math.imul(s,2246822519);n=Math.imul(n^(n>>>13),1274126177);return((n^(n>>>16))>>>0)/4294967296};
-const at=(x,z)=>x>=0&&z>=0&&x<W&&z<H?tiles[z*W+x]:null;const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);const height=(x,z)=>at(Math.round(x),Math.round(z))?.h||0;const pos=(x,z)=>new THREE.Vector3(x-W/2+.5,height(x,z)*.48,z-H/2+.5);
+const at=(x,z)=>x>=0&&z>=0&&x<W&&z<H?tiles[z*W+x]:null;const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);const height=(x,z)=>at(Math.round(x),Math.round(z))?.h||0;const pos=(x,z)=>new THREE.Vector3(x-W/2+.5,surfaceHeight(x+.5,z+.5)*.48,z-H/2+.5);
 function mesh(geo,material,parent,x,y,z,sx=1,sy=1,sz=1){let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
 function clear(group){while(group.children.length){let child=group.children[0];group.remove(child);if(child.isInstancedMesh)child.dispose();if(child.geometry&&!([box,sphere,cone,cyl,ringGeo,roofGeo].includes(child.geometry)))child.geometry.dispose()}}
 function log(s){logs.unshift(s);logs=logs.slice(0,5);$('#events').innerHTML=logs.map(v=>`<p>${v}</p>`).join('');toast(s)}
