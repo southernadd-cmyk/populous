@@ -5,9 +5,6 @@ import vm from 'node:vm';
 import * as THREE from '../vendor/three.module.js';
 
 const source=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
-const terrainCode=source.slice(source.indexOf('function placeTerrainInstance('),source.indexOf('function renderStone('));
-const treeCode=source.slice(source.indexOf('function renderObjects(){'),source.indexOf('function updateShrineVisuals()'));
-
 
 test('inspect raycasts the visible building meshes rather than only terrain',()=>{
  assert.match(source,/userData\.inspectBuilding=b/);
