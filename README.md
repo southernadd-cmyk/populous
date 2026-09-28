@@ -1,13 +1,16 @@
-# The Living Land: The Heartstone
+# The Living Land — The Beginning
 
-A short single-player god-game prototype. [Play on GitHub Pages](https://southernadd-cmyk.github.io/populous/).
+A browser based, real time 3D god game prototype inspired by the play loop of **Populous: The Beginning**. [Play the current published version](https://southernadd-cmyk.github.io/populous/) (the hosted version may lag this branch).
 
-Hearthstone is a neutral village between the Verdant and the Ember. Use two orders each season to shape ground, found a frontier village, send pilgrims, nourish and ward towns, influence Hearthstone or damage the rival. Ember announces its next move before you commit. Reach 70% influence for two seasons, or lead after season 12.
+## Play
 
-The tutorial starts on a new browser and can be replayed from the header. Select an order in the fixed toolbar and click the map. Drag to pan, scroll or use +/− to zoom. The Villages drawer shows food, population, growth and event history.
+- Convert wildmen with the shaman, then command braves to build huts from nearby trees.
+- Occupied huts spawn new braves. Followers replenish mana over time.
+- Move the shaman into range to cast Convert, Raise, Lower, Land Bridge and Blast.
+- Send braves toward the opposing tribe. Enemy followers build and raid autonomously.
+- Pause, set 1×/2×/3× speed, drag to pan, right drag to rotate, scroll to zoom.
+- Win by defeating all enemy followers; lose if all friendly followers are defeated.
 
-This is a new game ruleset rather than an extension of the previous real-time simulation. Its deterministic simulation lives in `src/main.js`, with a procedural isometric Canvas renderer; no build step or account is needed. The design rationale and playtest criteria are in [DECISION_DESIGN.md](DECISION_DESIGN.md). The original Populous comparison is in [DESIGN_NOTES.md](DESIGN_NOTES.md). Different world seeds change the surrounding terrain while preserving the central scenario's key positions.
+This is the first foundation, not an asset or code port of the original. It does not yet have the original's training huts, specialized follower classes, spell charging, multiple tribes, spherical world, or network multiplayer. The original turn based Heartstone prototype is retained in Git history. `vendor/three.module.js` is Three.js r180 under the MIT license; see `vendor/THREE-LICENSE.txt`.
 
-## Local preview
-
-Run a static server from the repository root, such as `python3 -m http.server 8000`, then open `http://localhost:8000/` in a browser. Use `?seed=12345&tutorial=1` to replay the opening with a known map.
+Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000`. A browser with WebGL 2 support is required. There is no build step or installation for players.
