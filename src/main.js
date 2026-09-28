@@ -99,15 +99,11 @@ function surfaceHeight(x,z){
  let tx=clamp(Math.floor(x),0,W-1),tz=clamp(Math.floor(z),0,H-1),t=at(tx,tz);if(!t)return 0;
  let lx=clamp(x-tx,0,1),lz=clamp(z-tz,0,1),centre=t.h;
  let nw=terrainCornerHeight(tx,tz),ne=terrainCornerHeight(tx+1,tz),se=terrainCornerHeight(tx+1,tz+1),sw=terrainCornerHeight(tx,tz+1);
- // Four triangular faces meet at the exact logical tile height in the centre.
- // This keeps placement/spell rules discrete while the visible ground is continuous.
- if(lz<=.5&&lx<=.5-lz)return nw+(centre-nw)*(lx+lz)*2;
- if(lz<=.5&&lx>=.5+lz)return ne+(centre-ne)*((1-lx)+lz)*2;
- if(lz>=.5&&lx>=1.5-lz)return se+(centre-se)*((1-lx)+(1-lz))*2;
- if(lz>=.5&&lx<=lz-.5)return sw+(centre-sw)*(lx+(1-lz))*2;
- if(lz<.5){let edge=nw+(ne-nw)*lx;return edge+(centre-edge)*(lz/.5)}
- if(lz>.5){let edge=sw+(se-sw)*lx;return centre+(edge-centre)*((lz-.5)/.5)}
- return centre
+ // Match the four triangles used by buildTerrainSurface exactly.
+ if(lz<=lx&&lz<=1-lx)return nw*(1-lx-lz)+ne*(lx-lz)+centre*(2*lz);
+ if(lx>=lz&&lx>=1-lz)return ne*(lx-lz)+se*(lx+lz-1)+centre*(2*(1-lx));
+ if(lz>=lx&&lz>=1-lx)return se*(lx+lz-1)+sw*(lz-lx)+centre*(2*(1-lz));
+ return sw*(lz-lx)+nw*(1-lx-lz)+centre*(2*lx)
 }
 function buildTerrainSurface(){
  let positions=[],colors=[],indices=[],vertex=0,color=new THREE.Color();
