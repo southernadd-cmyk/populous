@@ -1,6 +1,6 @@
 # The Living Land — The Living Faith
 
-A browser based, real-time 3D god game focused on faith and settlement growth. [Play on GitHub Pages](https://southernadd-cmyk.github.io/populous/).
+A browser based, real-time 3D god game focused on faith and settlement growth. The 42×30 island supports longer journeys, distributed construction work, worker shrine tending, and paths around water. Claimed stones anchor new villages even when they are far from the starting camp. [Play on GitHub Pages](https://southernadd-cmyk.github.io/populous/).
 
 ## The loop
 
