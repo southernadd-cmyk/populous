@@ -17,6 +17,13 @@ test('inspect opens the site card for ordinary friendly homes, not only blessed 
  assert.match(source,/unblessed: use Bless to make this home generate Faith and Devotion/);
 });
 
+test('terrain sculpting preview exposes the logical tile and resulting height',()=>{
+ assert.match(source,/function hoverTileOutline\(x,z,material=hoverLineMat/);
+ assert.match(source,/hoverTileOutline\(x,z\)/);
+ assert.match(source,/H\\\$\{at\(x,z\)\.h\} → H\\\$\{at\(x,z\)\.h\+\(mode==='raise'\?1:-1\)\}/);
+ assert.match(source,/if\(highlighted\.length\)hoverFootprint\(highlighted\)/);
+});
+
 test('sloped terrain preserves logical tile centres and remains raycastable',()=>{
  const W=8,H=8,tiles=Array.from({length:W*H},()=>({h:2,tree:false})),seed=2026;
  const mat=color=>new THREE.MeshStandardMaterial({color});
