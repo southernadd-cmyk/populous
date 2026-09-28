@@ -88,7 +88,7 @@ test('idle followers have housing, but earn no devotion without productive sites
   g.advance(50);
   assert.equal(g.eval('devotion[0]'), 0);
   assert.ok(g.eval('people.filter(p=>p.owner===0).length<=housingCapacity(0)'));
-  assert.ok(g.eval("people.some(p=>p.owner===0&&p.job.startsWith('SUPPORTING'))"));
+  assert.ok(g.eval("people.some(p=>p.owner===0&&['hunt','mine','explore'].includes(p.intent?.kind)||p.owner===0&&p.ambientReturn)"), 'spare workers should leave the houses for useful roaming jobs');
   assert.ok(g.eval('devotion[1]>0'));
 });
 
@@ -134,6 +134,41 @@ test('spare followers can hunt, mine and explore away from the village', () => {
   assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'high ground provides a mining destination');
   assert.ok(g.eval("ambientTarget(roamingWorker,'explore')"), 'distant land provides an exploration destination');
   assert.equal(g.eval("['hunt','mine','explore'].every(kind=>validWorkerIntent({kind,site:ambientTarget(roamingWorker,kind)},0))"), true);
+});
+
+test('roaming jobs return useful benefits to the settlement', () => {
+  const g = game(.217);
+  g.eval(`var home=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1);
+    var worker=people.find(p=>p.owner===0&&p.type==='brave');
+    home.provisions=0;worker.ambientReturn='hunt';worker.ambientHome=home;finishAmbientTrip(worker)`);
+  assert.equal(g.eval('home.provisions'),1,'hunting stocks provisions');
+
+  g.eval("worker.ambientReturn='mine';worker.ambientHome=home;finishAmbientTrip(worker)");
+  assert.equal(g.eval('home.stonework'),1,'mining supplies building stone');
+
+  const faithBefore=g.eval('faith[0]');
+  g.eval("worker.ambientReturn='explore';worker.ambientHome=home;finishAmbientTrip(worker)");
+  assert.equal(g.eval('faith[0]'),faithBefore+4,'scouting discoveries return faith');
+  assert.equal(g.eval('home.discoveries'),1);
+});
+
+test('homes use village-wide staffing rather than requiring followers to huddle nearby', () => {
+  const g = game(.217);
+  g.eval(`var staffedHome=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1);
+    for(let p of people.filter(p=>p.owner===0&&p.type==='brave')){p.x=staffedHome.x+12;p.z=staffedHome.z;p.role='worker'}`);
+  assert.ok(g.eval('villageStaffing(0)>=1'));
+  assert.equal(g.eval('siteNeeds(staffedHome,0).healthy'),true,'a dispersed active workforce keeps the home healthy');
+  assert.equal(g.eval('people.filter(p=>p.owner===0&&p.type==="brave"&&dist(p,staffedHome)<3).length'),0,'no follower needs to stand beside the home');
+});
+
+test('mined stone can bring a mature house forward to fort readiness', () => {
+  const g=game(.217);
+  g.eval(`var stoneHome=at(12,24).building;stoneHome.progress=1;stoneHome.level=2;stoneHome.born=6;stoneHome.completedAt=0;stoneHome.lastGrowthAt=50;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){let t=at(12+dx,24+dz);t.h=2;t.tree=false;if(t.building!==stoneHome)t.building=null}
+    elapsed=82;stoneHome.stonework=0`);
+  assert.equal(g.eval('hutLevel(stoneHome)'),2,'without mined stone the house is still waiting');
+  g.eval('stoneHome.stonework=1');
+  assert.equal(g.eval('hutLevel(stoneHome)'),3,'one stone delivery advances the fort maturation clock');
 });
 
 test('a bare sacred site requires one shaped tile, a 2×2 foundation and actual follower work', () => {
