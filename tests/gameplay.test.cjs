@@ -17,7 +17,7 @@ function game(seed) {
     const mat=c=>({color:c}),THREE={Vector3:class{constructor(x,y,z){this.x=x;this.y=y;this.z=z}},Object3D:class{}};
     const unitsGroup={children:[]},fxGroup={children:[]},hoverGroup={children:[]},box={},sphere={},cone={},cyl={},ringGeo={};
     ${logic}
-    renderTerrain=()=>{};renderObjects=()=>{};updateUI=()=>{};updateGuide=()=>{};
+    renderTerrain=()=>{};renderObjects=()=>{};updateUI=()=>{};
     ping=()=>{};log=()=>{};toast=()=>{};cameraTarget=()=>{};updateCamera=()=>{};
     finish=win=>{ended=win?'victory':'defeat';running=false};
     makeWorld();
@@ -162,14 +162,45 @@ test('one festival starts a tribe-wide cooldown across sites', () => {
   const g = game(.217);
   g.eval(`finishedStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0);
     shrines[0].belief=70;for(let p of people.filter(p=>p.worshipSite===shrines[0])){p.x=shrines[0].x+.2;p.z=shrines[0].z}
+    let edit;while(terraceScore(shrines[0])<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(shrines[0])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
     faith[0]=100;festival(shrines[0])`);
   assert.ok(g.eval('devotion[0]>0'));
-  assert.ok(g.eval('nextFestivalAt>elapsed'));
+  assert.ok(g.eval('nextFestivalAt[0]>elapsed'));
+  assert.equal(g.eval("regionalVows[0].has('North')"),true);
   g.eval(`finishedStone(shrines[1],0);addPerson(0,shrines[1].x,shrines[1].z,'brave');addPerson(0,shrines[1].x,shrines[1].z,'brave');
     shrines[1].policy='worship';syncSitePolicies(0);shrines[1].belief=80;
     for(let p of people.filter(p=>p.worshipSite===shrines[1])){p.x=shrines[1].x+.2;p.z=shrines[1].z}
     faith[0]=100`);
   assert.equal(g.eval('festivalReady(shrines[1])'), false);
+});
+
+test('devotion alone cannot end the contest; each distinct region needs its own prepared festival', () => {
+  const g=game(.217);
+  g.eval('devotion[0]=DEVOTION_GOAL+500;ai(.1)');
+  assert.equal(g.eval('ended'),'');
+  g.eval(`for(let site of [shrines[0],shrines[1],shrines[2]]){
+    finishedStone(site,0);site.policy='worship';site.belief=90;
+    let edit;while(terraceScore(site)<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(site)))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    addPerson(0,site.x,site.z,'brave');addPerson(0,site.x,site.z,'brave');
+  }syncSitePolicies(0);for(let site of [shrines[0],shrines[1],shrines[2]])for(let p of people.filter(p=>p.worshipSite===site)){p.x=site.x+.2;p.z=site.z}`);
+  assert.equal(g.eval('festivalReady(shrines[0])'),true);
+  g.eval('faith[0]=160;festival(shrines[0]);nextFestivalAt[0]=0;shrines[0].festivalUntil=0;shrines[0].belief=90;faith[0]=160;festival(shrines[0])');
+  assert.equal(g.eval('regionalVows[0].size'),1,'repeating a festival does not satisfy a second region');
+  g.eval('nextFestivalAt[0]=0;faith[0]=160;festival(shrines[1]);nextFestivalAt[0]=0;faith[0]=160;festival(shrines[2])');
+  assert.equal(g.eval('regionalVows[0].size'),3);
+  assert.equal(g.eval('victoryReady(0)'),true);
+});
+
+test('the rival must develop all three regions before it can win',()=>{
+  for(const seed of [.043,.217]){
+    const g=game(seed);
+    g.advance(150);
+    assert.equal(g.eval('ended'),'','the opening cannot finish as a passive score race');
+    g.advance(190);
+    assert.equal(g.eval('ended'),'defeat');
+    assert.equal(g.eval('regionalVows[1].size'),3);
+    assert.ok(g.eval('elapsed')>=190&&g.eval('elapsed')<=300);
+  }
 });
 
 test('an occupied hut grows in stages only after land, births and maturity milestones', () => {
@@ -219,34 +250,58 @@ test('an occupied hut grows in stages only after land, births and maturity miles
 });
 
 const villagePlan = `{
-  if(faith[0]>=30){let hut=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed);
-    if(hut){if(dist(shaman,hut)<=5.5){mode='bless';action(hut.x,hut.z);hut.policy=buildings.some(b=>b.owner===0&&b.blessed&&b!==hut&&b.policy==='grow')?'worship':'grow';syncSitePolicies(0)}else shaman.goal={x:hut.x,z:hut.z}}}
-  if(faith[0]>=FESTIVAL_COST){let ready=buildings.find(b=>b.owner===0&&festivalReady(b));if(ready)festival(ready)}
-  if(people.filter(p=>p.owner===0).length>=housingCapacity(0)-4&&!buildings.some(b=>b.owner===0&&b.type==='hut'&&b.progress<1)&&faith[0]>=4){
-    let plan=null;for(let z=2;z<H-2&&!plan;z++)for(let x=2;x<W/2&&!plan;x++)if(dist(shaman,{x,z})<=5.5)for(let dir of [-1,1])if(terrainBrush(x,z,dir).newPlot){plan={x,z,dir};break}
-    if(plan){mode=plan.dir>0?'raise':'lower';action(plan.x,plan.z)}
+  let route=[[15,22],[17,26],[21,24],[25,24],[28,24]],sites=route.map(([x,z])=>buildings.find(b=>b.owner===0&&b.x===x&&b.z===z));
+  let ready=buildings.find(b=>b.owner===0&&faithRegion(b)&&!regionalVows[0].has(faithRegion(b))&&festivalReady(b));
+  if(ready&&faith[0]>=FESTIVAL_COST)festival(ready);
+  for(let b of buildings.filter(b=>b.owner===0&&b.blessed&&b.progress===1&&faithRegion(b))){let required=faithRegion(b)==='Crossing'?3:2;if(b.level>=required&&b.policy!=='worship'){b.policy='worship';syncSitePolicies(0)}}
+  let unfinished=route.findIndex((point,i)=>!sites[i]);if(unfinished>=0){let [x,z]=route[unfinished];if(plotAt(x,z,0)){mode='hut';action(x,z)}}
+  let unblessed=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed);
+  if(unblessed&&faith[0]>=30){if(dist(shaman,unblessed)>5.5)shaman.goal={x:unblessed.x,z:unblessed.z};else{mode='bless';action(unblessed.x,unblessed.z)}}
+  else if(faith[0]>=4){let home=sites.find(b=>b?.progress===1&&faithRegion(b)&&b.level<(faithRegion(b)==='Crossing'?3:2));if(home){let edit=null,level=height(home.x,home.z);for(let dz=-1;dz<=1&&!edit;dz++)for(let dx=-1;dx<=1&&!edit;dx++)if(dx||dz){let x=home.x+dx,z=home.z+dz,t=at(x,z),dir=Math.sign(level-t.h);if(dir&&terrainBrush(x,z,dir).changed)edit={x,z,dir}}if(edit){if(dist(shaman,edit)>5.5)shaman.goal={x:home.x,z:home.z};else{mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
   }
 }`;
 
 const stonePlan = `{
-  if(elapsed<1)shaman.goal={x:shrines[0].x,z:shrines[0].z};
   let owned=shrines.filter(s=>s.owner===0),enemy=people.find(p=>p.owner===1&&p.type==='shaman');
-  for(let site of owned)site.policy=dist(enemy,site)<5?'guard':'worship';syncSitePolicies(0);
-  if(faith[0]>=FESTIVAL_COST){let ready=owned.find(s=>festivalReady(s));if(ready)festival(ready)}
-  let contested=owned.find(s=>s.spirit<60&&dist(enemy,s)<2);
-  if(contested){shaman.goal={x:contested.x,z:contested.z};if(faith[0]>=30&&dist(shaman,contested)<3){mode='ritual';action(contested.x,contested.z)}}
-  else{let target=nearest(shrines.filter(s=>s.owner===1||s.owner===2&&s.projectOwner===2),shaman);if(target){if(dist(shaman,target)>(target.owner===2?3:1.25)){if(!shaman.goal||dist(shaman.goal,target)>1)shaman.goal={x:target.x,z:target.z}}else if(target.owner===1&&faith[0]>=45){mode='ritual';action(target.x,target.z)}else if(target.owner===2){let plot=stoneCandidate(target);if(plot&&faith[0]>=STONE_COST){mode='stone';action(plot.x,plot.z)}else if(!plot&&faith[0]>=4){let edit=stonePreparation(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}}}
-  if(faith[0]>=4){let rough=owned.find(s=>terraceScore(s)<4&&dist(shaman,s)<5),plan=rough&&bestTerraceBrush(rough);if(plan&&dist(shaman,plan)<5){mode=plan.dir>0?'raise':'lower';action(plan.x,plan.z)}}
+  for(let site of owned)site.policy=dist(enemy,site)<3?'guard':'worship';syncSitePolicies(0);
+  if(faith[0]>=FESTIVAL_COST){let ready=owned.find(s=>!regionalVows[0].has(faithRegion(s))&&festivalReady(s));if(ready)festival(ready)}
+  let target=owned.find(s=>!regionalVows[0].has(faithRegion(s))&&terraceScore(s)<STONE_RITE_TERRACE)
+    ||shrines.find(s=>!regionalVows[0].has(faithRegion(s))&&s.owner===2&&s.projectOwner===2)
+    ||shrines.find(s=>!regionalVows[0].has(faithRegion(s))&&s.owner===1);
+  if(target){
+    if(target.owner===0){if(dist(shaman,target)>4.4)shaman.goal={x:target.x,z:target.z};else if(faith[0]>=4){let edit=bestTerraceBrush(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
+    else if(dist(shaman,target)>(target.owner===2?2.8:1.1))shaman.goal={x:target.x,z:target.z};
+    else if(target.owner===1&&faith[0]>=45){mode='ritual';action(target.x,target.z)}
+    else if(target.owner===2){let plot=stoneCandidate(target);if(plot&&faith[0]>=STONE_COST){mode='stone';action(plot.x,plot.z)}else if(!plot&&faith[0]>=4){let edit=stonePreparation(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
+  }
 }`;
 
-test('village and stone plans can each beat both rival styles', () => {
-  for (const seed of [.043, .217]) for (const plan of [villagePlan, stonePlan]) {
+test('stone plan reaches all regional festivals against both rival styles', () => {
+  for (const seed of [.043, .217]) {
     const g = game(seed);
-    for (let t = 0; t < 240 && !g.eval('ended'); t++) {
-      if (t % 3 === 0) g.eval(plan);
+    let firstThree=null;
+    for (let t = 0; t < 400 && !g.eval('ended'); t++) {
+      if (t % 3 === 0) g.eval(stonePlan);
+      g.advance(1);
+      if(!firstThree&&g.eval('regionalVows[0].size===3'))firstThree=[t,Math.floor(g.eval('devotion[0]'))];
+    }
+    assert.equal(g.eval('ended'), 'victory', `stone plan failed on seed ${seed}: ${g.eval('devotion.map(Math.floor)')}`);
+    assert.equal(g.eval('regionalVows[0].size'),3);
+    assert.ok(firstThree&&g.eval('elapsed')-firstThree[0]<40,'the score should follow the active third festival without a long passive wait');
+    assert.ok(g.eval('elapsed')>=160&&g.eval('elapsed')<260);
+  }
+});
+
+test('village plan reaches all regional festivals against both rival styles', () => {
+  for(const seed of [.043,.217]){
+    const g=game(seed);
+    for(let t=0;t<420&&!g.eval('ended');t++){
+      if(t%3===0)g.eval(villagePlan);
       g.advance(1);
     }
-    assert.equal(g.eval('ended'), 'victory', `${plan === villagePlan ? 'village' : 'stone'} plan failed on seed ${seed}: ${g.eval('devotion.map(Math.floor)')}`);
-    assert.ok(g.eval('elapsed') < 210);
+    assert.equal(g.eval('ended'),'victory',`village plan failed on seed ${seed}: ${g.eval('devotion.map(Math.floor)')} ${g.eval('regionalVows.map(s=>[...s])')}`);
+    assert.equal(g.eval('regionalVows[0].size'),3);
+    assert.equal(g.eval('shrines.filter(s=>s.owner===0).length'),0,'villages can complete the map without stone circles');
+    assert.ok(g.eval('elapsed')>=160&&g.eval('elapsed')<260);
   }
 });
