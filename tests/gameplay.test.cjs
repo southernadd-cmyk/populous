@@ -21,6 +21,11 @@ function game(seed) {
     ping=()=>{};log=()=>{};toast=()=>{};cameraTarget=()=>{};
     finish=win=>{ended=win?'victory':'defeat';running=false};
     makeWorld();
+    function finishedStone(site,owner){
+      let edit;while((edit=stonePreparation(site)))terrainBrush(edit.x,edit.z,edit.dir,true,owner);
+      let plot=stoneCandidate(site);faith[owner]=160;startStoneProject(site,plot.x,plot.z,owner);
+      site.progress=1;consecrateStone(site,owner);
+    }
   `, context);
   return {
     eval: code => vm.runInContext(code, context),
@@ -55,9 +60,33 @@ test('one shaped tile can open a plot and prompt an automatic hut', () => {
   assert.equal(g.eval(`at(${plan.plot.x},${plan.plot.z}).building?.progress`), 1);
 });
 
-test('Worship allocates followers; Guard slows a contested stone capture', () => {
+test('a bare sacred site requires one shaped tile, a 2×2 foundation and actual follower work', () => {
   const g = game(.217);
-  g.eval(`captureStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0)`);
+  g.eval('shaman.x=13;shaman.z=15');
+  g.advance(4);
+  assert.equal(g.eval('shrines[0].owner'), 2);
+  assert.equal(g.eval('shrines[0].progress'), 0);
+  assert.equal(g.eval('stoneCandidate(shrines[0])'), null);
+  const edit = g.eval('stonePreparation(shrines[0])');
+  assert.equal(edit.edits, 1);
+  g.eval(`mode='${edit.dir > 0 ? 'raise' : 'lower'}';action(${edit.x},${edit.z})`);
+  const plot = g.eval('stoneCandidate(shrines[0])');
+  assert.ok(plot);
+  const faithBefore = g.eval('faith[0]');
+  g.eval(`mode='stone';action(${plot.x},${plot.z})`);
+  assert.equal(g.eval('shrines[0].owner'), 2);
+  assert.equal(g.eval('shrines[0].projectOwner'), 0);
+  assert.equal(g.eval('faith[0] <= ' + faithBefore + '-STONE_COST'), true);
+  assert.equal(g.eval('shrineFlow(shrines[0])'), 0);
+  assert.equal(g.eval(`terrainBrush(${edit.x},${edit.z},1).changed`), 0);
+  g.advance(40);
+  assert.equal(g.eval('shrines[0].owner'), 0);
+  assert.ok(g.eval('devotionRate(0)>0'));
+});
+
+test('Worship allocates followers; Guard slows a contested stone conversion', () => {
+  const g = game(.217);
+  g.eval(`finishedStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0)`);
   assert.equal(g.eval('people.filter(p=>p.worshipSite===shrines[0]).length'), 2);
   assert.ok(g.eval("people.filter(p=>p.owner===0&&p.role==='worker').length>=3"));
   g.eval(`shrines[0].policy='guard';syncSitePolicies(0)`);
@@ -70,12 +99,12 @@ test('Worship allocates followers; Guard slows a contested stone capture', () =>
 
 test('one festival starts a tribe-wide cooldown across sites', () => {
   const g = game(.217);
-  g.eval(`captureStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0);
+  g.eval(`finishedStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0);
     shrines[0].belief=70;for(let p of people.filter(p=>p.worshipSite===shrines[0])){p.x=shrines[0].x+.2;p.z=shrines[0].z}
     faith[0]=100;festival(shrines[0])`);
   assert.ok(g.eval('devotion[0]>0'));
   assert.ok(g.eval('nextFestivalAt>elapsed'));
-  g.eval(`captureStone(shrines[1],0);addPerson(0,21,15,'brave');addPerson(0,21,15,'brave');
+  g.eval(`finishedStone(shrines[1],0);addPerson(0,21,15,'brave');addPerson(0,21,15,'brave');
     shrines[1].policy='worship';syncSitePolicies(0);shrines[1].belief=80;
     for(let p of people.filter(p=>p.worshipSite===shrines[1])){p.x=shrines[1].x+.2;p.z=shrines[1].z}
     faith[0]=100`);
@@ -99,7 +128,7 @@ const stonePlan = `{
   if(faith[0]>=FESTIVAL_COST){let ready=owned.find(s=>festivalReady(s));if(ready)festival(ready)}
   let contested=owned.find(s=>s.spirit<60&&dist(enemy,s)<2);
   if(contested){shaman.goal={x:contested.x,z:contested.z};if(faith[0]>=30&&dist(shaman,contested)<3){mode='ritual';action(contested.x,contested.z)}}
-  else{let target=nearest(shrines.filter(s=>s.owner!==0),shaman);if(target){if(dist(shaman,target)>1.25){if(!shaman.goal||dist(shaman.goal,target)>1)shaman.goal={x:target.x,z:target.z}}else if(target.owner===1&&faith[0]>=45){mode='ritual';action(target.x,target.z)}}}
+  else{let target=nearest(shrines.filter(s=>s.owner===1||s.owner===2&&s.projectOwner===2),shaman);if(target){if(dist(shaman,target)>(target.owner===2?3:1.25)){if(!shaman.goal||dist(shaman.goal,target)>1)shaman.goal={x:target.x,z:target.z}}else if(target.owner===1&&faith[0]>=45){mode='ritual';action(target.x,target.z)}else if(target.owner===2){let plot=stoneCandidate(target);if(plot&&faith[0]>=STONE_COST){mode='stone';action(plot.x,plot.z)}else if(!plot&&faith[0]>=4){let edit=stonePreparation(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}}}
   if(faith[0]>=4){let rough=owned.find(s=>terraceScore(s)<4&&dist(shaman,s)<5),plan=rough&&bestTerraceBrush(rough);if(plan&&dist(shaman,plan)<5){mode=plan.dir>0?'raise':'lower';action(plan.x,plan.z)}}
 }`;
 
