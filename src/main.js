@@ -90,15 +90,40 @@ function makeWorld(){
 }
 function addBuilding(x,z,owner,type,complete=false){let t=at(x,z);if(!t||t.h<1||t.building)return null;let b={x,z,owner,type,progress:complete?1:0,wood:complete?3:0,blessed:false,policy:'grow',level:1,born:0,completedAt:complete?elapsed:null,lastGrowthAt:complete?elapsed:null,pop:0,spawn:0,footprint:[{x,z}]};buildings.push(b);t.building=b;return b}
 function addPerson(owner,x,z,type){let p={owner,x,z,type,goal:null,work:0,carry:0,ambientCarry:null,idle:0,role:'worker',worshipSite:null,guardSite:null,workSite:null,tendSite:null,supportSite:null,intent:null,intentUntil:0,tendCooldown:0,route:null,routeGoal:null,job:type==='wild'?'ROAMING':'IDLE'};people.push(p);return p}
-function placeTerrainInstance(entry,slot,x,z,h){
- let px=x-W/2+.5,pz=z-H/2+.5,y=h*.48;
- instanceTransform.position.set(px,y/2-.015,pz);instanceTransform.scale.set(.98,y,.98);instanceTransform.updateMatrix();entry.side.setMatrixAt(slot,instanceTransform.matrix);
- instanceTransform.position.set(px,y-.035,pz);instanceTransform.scale.set(.99,.09,.99);instanceTransform.updateMatrix();entry.top.setMatrixAt(slot,instanceTransform.matrix)
+function terrainCornerHeight(cx,cz){
+ let total=0,count=0;
+ for(let dz=-1;dz<=0;dz++)for(let dx=-1;dx<=0;dx++){let t=at(cx+dx,cz+dz);if(t){total+=t.h;count++}}
+ return count?total/count:0
+}
+function surfaceHeight(x,z){
+ let tx=clamp(Math.floor(x),0,W-1),tz=clamp(Math.floor(z),0,H-1),t=at(tx,tz);if(!t)return 0;
+ let lx=clamp(x-tx,0,1),lz=clamp(z-tz,0,1),centre=t.h;
+ let nw=terrainCornerHeight(tx,tz),ne=terrainCornerHeight(tx+1,tz),se=terrainCornerHeight(tx+1,tz+1),sw=terrainCornerHeight(tx,tz+1);
+ // Four triangular faces meet at the exact logical tile height in the centre.
+ // This keeps placement/spell rules discrete while the visible ground is continuous.
+ if(lz<=.5&&lx<=.5-lz)return nw+(centre-nw)*(lx+lz)*2;
+ if(lz<=.5&&lx>=.5+lz)return ne+(centre-ne)*((1-lx)+lz)*2;
+ if(lz>=.5&&lx>=1.5-lz)return se+(centre-se)*((1-lx)+(1-lz))*2;
+ if(lz>=.5&&lx<=lz-.5)return sw+(centre-sw)*(lx+(1-lz))*2;
+ if(lz<.5){let edge=nw+(ne-nw)*lx;return edge+(centre-edge)*(lz/.5)}
+ if(lz>.5){let edge=sw+(se-sw)*lx;return centre+(edge-centre)*((lz-.5)/.5)}
+ return centre
+}
+function buildTerrainSurface(){
+ let positions=[],colors=[],indices=[],vertex=0,color=new THREE.Color();
+ const push=(x,y,z,c)=>{positions.push(x-W/2,y*.48,z-H/2);color.set(c);colors.push(color.r,color.g,color.b);return vertex++};
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){
+  let t=at(x,z);if(!t?.h)continue;
+  let c=landMats[t.h].color,nw=terrainCornerHeight(x,z),ne=terrainCornerHeight(x+1,z),se=terrainCornerHeight(x+1,z+1),sw=terrainCornerHeight(x,z+1);
+  let a=push(x,nw,z,c),b=push(x+1,ne,z,c),d=push(x+1,se,z+1,c),e=push(x,sw,z+1,c),m=push(x+.5,t.h,z+.5,c);
+  indices.push(a,b,m,b,d,m,d,e,m,e,a,m)
+ }
+ let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();geo.computeBoundingSphere();return geo
 }
 function placePebble(x,z){
  let index=pebbleSlots[z*W+x];if(index<0)return;
- let t=at(x,z),v=rand(x,z,seed+74);
- instanceTransform.position.set(x-W/2+.5+(rand(x,z,seed+75)-.5)*.6,t.h*.48+.012,z-H/2+.5+(rand(x,z,seed+76)-.5)*.6);
+ let t=at(x,z),v=rand(x,z,seed+74),px=x+.5+(rand(x,z,seed+75)-.5)*.6,pz=z+.5+(rand(x,z,seed+76)-.5)*.6;
+ instanceTransform.position.set(px-W/2,surfaceHeight(px,pz)*.48+.012,pz-H/2);
  instanceTransform.scale.set(t.h?.05:0,t.h?.03:0,t.h?.08:0);instanceTransform.updateMatrix();
  pebbleInstances.setMatrixAt(index,instanceTransform.matrix);
  pebbleInstances.setColorAt(index,(v>.5?stoneMat:landMats[Math.min(5,t.h+1)]).color)
@@ -113,38 +138,22 @@ function renderTerrainMarks(){
  }
 }
 function renderTerrain(){
- clear(terrain);terrainLevels=[null];terrainSlots=new Int32Array(W*H).fill(-1);terrainHeights=new Int8Array(W*H);pebbleSlots=new Int32Array(W*H).fill(-1);
- for(let h=1;h<=5;h++){
-  let side=new THREE.InstancedMesh(box,sideMats[h],W*H),top=new THREE.InstancedMesh(box,landMats[h],W*H);
-  side.count=0;top.count=0;side.castShadow=true;side.receiveShadow=true;top.castShadow=true;top.receiveShadow=true;
-  side.frustumCulled=false;top.frustumCulled=false;
-  let bounds=new THREE.Sphere(new THREE.Vector3(0,2,0),Math.hypot(W/2,H/2)+10);side.boundingSphere=bounds;top.boundingSphere=bounds;
-  terrain.add(side,top);terrainLevels.push({side,top,slots:[]})
- }
+ clear(terrain);terrainLevels=[];terrainSlots=null;terrainHeights=new Int8Array(W*H);pebbleSlots=new Int32Array(W*H).fill(-1);
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++)terrainHeights[z*W+x]=at(x,z).h;
+ let surfaceMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,side:THREE.DoubleSide}),surface=new THREE.Mesh(buildTerrainSurface(),surfaceMat);
+ surface.castShadow=true;surface.receiveShadow=true;surface.userData.terrainSurface=true;surface.frustumCulled=false;terrain.add(surface);
  let pebbleCount=0;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(rand(x,z,seed+71)>.65)pebbleSlots[z*W+x]=pebbleCount++;
  pebbleInstances=new THREE.InstancedMesh(sphere,pebbleMat,pebbleCount);pebbleInstances.castShadow=false;pebbleInstances.receiveShadow=true;pebbleInstances.frustumCulled=false;terrain.add(pebbleInstances);
- for(let z=0;z<H;z++)for(let x=0;x<W;x++){
-  let id=z*W+x,h=at(x,z).h;terrainHeights[id]=h;
-  if(h){let entry=terrainLevels[h],slot=entry.slots.length;entry.slots.push(id);terrainSlots[id]=slot;entry.side.count=slot+1;entry.top.count=slot+1;placeTerrainInstance(entry,slot,x,z,h)}
-  if(pebbleSlots[id]>=0)placePebble(x,z)
- }
- for(let entry of terrainLevels.slice(1)){entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true}
- pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true;
- renderTerrainMarks()
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(pebbleSlots[z*W+x]>=0)placePebble(x,z);
+ pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true;renderTerrainMarks()
 }
 function refreshTerrainAt(x,z){
- if(!terrainLevels.length)return;
- let id=z*W+x,old=terrainHeights[id],next=at(x,z).h;
- if(old!==next){
-  if(old){let entry=terrainLevels[old],slot=terrainSlots[id],last=entry.slots.pop();
-   if(last!==id){entry.slots[slot]=last;terrainSlots[last]=slot;placeTerrainInstance(entry,slot,last%W,Math.floor(last/W),old)}
-   entry.side.count=entry.top.count=entry.slots.length;entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true
-  }
-  terrainSlots[id]=-1;
-  if(next){let entry=terrainLevels[next],slot=entry.slots.length;entry.slots.push(id);terrainSlots[id]=slot;entry.side.count=entry.top.count=slot+1;placeTerrainInstance(entry,slot,x,z,next);entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true}
-  terrainHeights[id]=next
- }
- if(pebbleSlots[id]>=0){placePebble(x,z);pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true}
+ if(!terrain.children.length)return;
+ terrainHeights[z*W+x]=at(x,z).h;
+ let surface=terrain.children.find(o=>o.userData.terrainSurface);if(surface){surface.geometry.dispose();surface.geometry=buildTerrainSurface()}
+ // Corner blending means one edit changes the visible slope of neighbouring tiles too.
+ for(let nz=Math.max(0,z-1);nz<=Math.min(H-1,z+1);nz++)for(let nx=Math.max(0,x-1);nx<=Math.min(W-1,x+1);nx++)if(pebbleSlots[nz*W+nx]>=0)placePebble(nx,nz);
+ if(pebbleInstances){pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true}
  renderTerrainMarks()
 }
 function renderStone(site){
@@ -458,7 +467,7 @@ function updateCamera(){target.x=clamp(target.x,-W/2+4,W/2-4);target.z=clamp(tar
 function panCamera(dx,dy){let scale=30/zoom/Math.max(stage.clientHeight,1);target.x+=(-dx*Math.cos(angle)-dy*Math.sin(angle))*scale;target.z+=(dx*Math.sin(angle)-dy*Math.cos(angle))*scale;updateCamera()}
 function pick(e){let r=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);
  if(mode==='inspect'){let hit=ray.intersectObjects(objects.children.filter(o=>o.userData.inspectBuilding),false)[0],building=hit?.object?.userData.inspectBuilding;if(building)return {x:building.x,z:building.z,building}}
- let hits=ray.intersectObjects([...terrain.children,water]);if(!hits.length)return null;let v=hits[0].point,x=Math.round(v.x+W/2-.5),z=Math.round(v.z+H/2-.5);return x>=0&&z>=0&&x<W&&z<H?{x,z}:null}
+ let hits=ray.intersectObjects([...terrain.children,water]);if(!hits.length)return null;let v=hits[0].point,x=Math.floor(v.x+W/2),z=Math.floor(v.z+H/2);return x>=0&&z>=0&&x<W&&z<H?{x,z}:null}
 let previewAt=0;
 function landPreview(e){let preview=$('#landPreview');if(drag||selectedSite||!['raise','lower','hut','stone'].includes(mode)){preview.hidden=true;clear(hoverGroup);return}if(performance.now()-previewAt<80)return;previewAt=performance.now();let point=pick(e);clear(hoverGroup);if(!point){preview.hidden=true;return}
  let {x,z}=point,plan=['hut','stone'].includes(mode)?null:terrainBrush(x,z,mode==='raise'?1:-1),sacred=mode==='stone'?stoneSiteForPlot(x,z):null,plot=mode==='hut'&&canPlaceHut(x,z)?{x,z}:mode==='stone'&&canBuildStone(sacred,x,z)?{x,z}:plan?.newStonePad||plan?.newPlot;
