@@ -13,12 +13,12 @@ function game(seed) {
   vm.runInContext(`
     Math.random = () => ${seed};
     const W=64,H=48,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-    const $=s=>document.querySelector(s),stage={clientWidth:1400};
+    const $=s=>document.querySelector(s),stage={clientWidth:1400,clientHeight:800},target={x:0,z:0};let angle=0,zoom=1;
     const mat=c=>({color:c}),THREE={Vector3:class{constructor(x,y,z){this.x=x;this.y=y;this.z=z}},Object3D:class{}};
     const unitsGroup={children:[]},fxGroup={children:[]},hoverGroup={children:[]},box={},sphere={},cone={},cyl={},ringGeo={};
     ${logic}
     renderTerrain=()=>{};renderObjects=()=>{};updateUI=()=>{};updateGuide=()=>{};
-    ping=()=>{};log=()=>{};toast=()=>{};cameraTarget=()=>{};
+    ping=()=>{};log=()=>{};toast=()=>{};cameraTarget=()=>{};updateCamera=()=>{};
     finish=win=>{ended=win?'victory':'defeat';running=false};
     makeWorld();
     function finishedStone(site,owner){
@@ -43,6 +43,40 @@ test('the larger world has reachable starts and five distributed sacred sites', 
   assert.ok(g.eval('Math.max(...shrines.map(s=>s.z))-Math.min(...shrines.map(s=>s.z))>=12'));
   assert.ok(g.eval('people.some(p=>p.owner===2&&dist(p,shaman)<5.5)'), 'a wild follower is available for the opening tutorial');
   assert.ok(g.eval('shrines.every(s=>validLand(s.x,s.z))'));
+  assert.ok(g.eval('CAMPS.every(camp=>shrines.every(site=>landRoute(camp,site)))'));
+});
+
+test('every generated world has mountains, hills, connected rivers and lakes', () => {
+  for(const seed of [.043,.217,.999]){
+    const g=game(seed);
+    assert.equal(g.eval('[at(8,16),at(55,16),at(10,31),at(53,31)].every(t=>t.h===5)'),true);
+    assert.equal(g.eval('tiles.some(t=>t.h===3)&&tiles.some(t=>t.h===4)'),true);
+    assert.equal(g.eval('at(31,12).feature===\'lake\'&&at(31,35).feature===\'lake\''),true);
+    assert.equal(g.eval(`(()=>{let queue=[],seen=new Set();for(let z=0;z<17;z++)if(at(0,z).feature==='river')queue.push([0,z]);
+      for(let head=0;head<queue.length;head++){let [x,z]=queue[head],key=z*W+x;if(seen.has(key))continue;seen.add(key);
+        if(x===W-1)return true;for(let [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          let nx=x+dx,nz=z+dz,t=at(nx,nz);if(t&&(t.feature==='river'||t.feature==='lake')&&!seen.has(nz*W+nx))queue.push([nx,nz])}}
+      return false})()`),true,'a connected northern river crosses the world');
+    assert.equal(g.eval('Array.from({length:W},(_,x)=>x).every(x=>Array.from({length:12},(_,d)=>at(x,31+d)).some(t=>t.feature===\'river\'||t.feature===\'lake\'))'),true);
+  }
+});
+
+test('vertical dragging moves the map with the pointer without changing horizontal drag',()=>{
+  const g=game(.217);
+  g.eval('panCamera(0,30)');
+  assert.ok(g.eval('target.z<0&&Math.abs(target.x)<.001'));
+  g.eval('target.x=0;target.z=0;panCamera(30,0)');
+  assert.ok(g.eval('target.x<0&&Math.abs(target.z)<.001'));
+});
+
+test('land bridges cross the new rivers and clear the water markers',()=>{
+  const g=game(.217);
+  g.eval("var riverZ=Array.from({length:18},(_,z)=>z).find(z=>at(8,z).feature==='river')");
+  assert.equal(g.eval('bridgeTiles(8,riverZ).every(p=>p.x===8)'),true);
+  g.eval("shaman.x=8;shaman.z=riverZ+2;mode='bridge';faith[0]=100;action(8,riverZ)");
+  assert.equal(g.eval('at(8,riverZ).h'),1);
+  assert.equal(g.eval('at(8,riverZ).feature'),null);
+  assert.equal(g.eval('faith[0]'),70);
 });
 
 test('idle followers have housing, but earn no devotion without productive sites', () => {
@@ -138,28 +172,35 @@ test('one festival starts a tribe-wide cooldown across sites', () => {
   assert.equal(g.eval('festivalReady(shrines[1])'), false);
 });
 
-test('an occupied hut grows into a house, fort and castle on level land', () => {
+test('an occupied hut grows in stages only after land, births and maturity milestones', () => {
   const g = game(.217);
-  g.eval(`var home=at(12,24).building;home.progress=1;home.blessed=true;home.belief=70;
+  g.eval(`var home=at(12,24).building;home.progress=1;home.completedAt=0;home.lastGrowthAt=0;home.blessed=true;home.belief=70;
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(dx||dz){let tile=at(12+dx,24+dz);tile.h=1;tile.tree=false}
     for(let [dx,dz] of [[-1,-1],[0,-1],[1,-1],[1,0]])at(12+dx,24+dz).h=2;
-    home.born=2`);
+    home.born=3`);
   const firstCapacity = g.eval('housingCapacity(0)');
+  g.eval('elapsed=24;ai(.1)');
+  assert.equal(g.eval('home.level'), 1,'a young hut does not become a house despite level land and births');
+  g.eval('elapsed=25');
   g.eval('ai(.1)');
   assert.equal(g.eval('home.level'), 2);
   assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 3);
   const houseDevotion = g.eval('siteDevotion(home)');
 
-  g.eval('home.born=4;at(11,24).h=2');
+  g.eval('home.born=6;at(11,24).h=2');
+  assert.equal(g.eval('terrainBrush(12,25,1).upgrade'),null,'a house cannot immediately become a fort');
+  g.eval('elapsed=85');
   assert.equal(g.eval('terrainBrush(12,25,1).upgrade.level'), 3);
   g.eval('terrainBrush(12,25,1,true)');
   assert.equal(g.eval('home.level'), 3);
   assert.equal(g.eval('home.footprint.length'), 4);
   assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 7);
 
-  g.eval('home.born=5;at(11,25).h=2;terrainBrush(13,25,1,true)');
+  g.eval('home.born=10;at(11,25).h=2;terrainBrush(13,25,1,true)');
   assert.equal(g.eval('home.level'), 3, 'level land alone does not produce a castle');
-  g.eval('home.born=6;ai(.1)');
+  g.eval('elapsed=160;home.lastGrowthAt=130;ai(.1)');
+  assert.equal(g.eval('home.level'), 3, 'late fort growth must also mature before castle');
+  g.eval('elapsed=180;ai(.1)');
   assert.equal(g.eval('home.level'), 4);
   assert.equal(g.eval('home.footprint.length'), 9);
   assert.equal(g.eval('home.footprint.every(q=>at(q.x,q.z).building===home)'), true);
@@ -170,9 +211,9 @@ test('an occupied hut grows into a house, fort and castle on level land', () => 
   assert.equal(g.eval('home.blessed'), true, 'the castle can be blessed from its outer footprint');
 
   const blocked = game(.217);
-  blocked.eval(`var home=at(12,24).building;home.progress=1;home.born=6;
+  blocked.eval(`var home=at(12,24).building;home.progress=1;home.completedAt=0;home.born=10;
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(dx||dz){let tile=at(12+dx,24+dz);tile.h=2;tile.tree=false}
-    var neighbour=addBuilding(13,25,1,'hut',true);ai(.1)`);
+    var neighbour=addBuilding(13,25,1,'hut',true);growBuilding(home,2);growBuilding(home,3);home.lastGrowthAt=0;elapsed=180;ai(.1)`);
   assert.equal(blocked.eval('home.level'), 3);
   assert.equal(blocked.eval('at(13,25).building===neighbour'), true);
 });

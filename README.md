@@ -2,11 +2,11 @@
 
 A real-time, browser-based god game about shaping land, growing followers, and building stone circles at sacred sites. It has no combat. [Play the published version](https://southernadd-cmyk.github.io/populous/).
 
-The world is **64×48 tiles**. The two villages begin on opposite sides of a broad central crossing. Five sacred sites form upper, lower and central routes, with wild followers scattered along the approaches. Settlements can grow to 72 people and 12 huts per tribe. Click the minimap to jump the camera between fronts, or use Home to return to your shaman.
+The world is **64×48 tiles**. The two villages begin on opposite sides of a broad central crossing. Five sacred sites form upper, lower and central routes, with wild followers scattered along the approaches. Every new world has paired mountain ridges, hills, two winding rivers and broad lakes connected to them. Settlements can grow to 72 people and 12 huts per tribe. Click the minimap to jump the camera between fronts, or use Home to return to your shaman.
 
 ## The gameplay loop
 
-Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Families grow automatically as workers support the settlement. Level ground around a hut turns it into a **house** (four clear neighbours, two births), a **fort** (six neighbours, four births and a clear 2×2 footprint), then a **castle** (all eight neighbours, six births and a clear 3×3 footprint). A home claims its larger footprint as it grows, so other buildings and terrain edits cannot overlap it. Housing increases from 6 to 9, 13 and 18; blessed homes also produce more Faith and Devotion at each stage.
+Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Families grow automatically as workers support the settlement. Level ground prepares a hut for a **house** (four clear neighbours, three births, and at least 25 seconds since completion), a **fort** (six neighbours, six births, a clear 2×2 footprint, at least 85 seconds old and 35 seconds after the house), then a **castle** (all eight neighbours, ten births, a clear 3×3 footprint, at least 160 seconds old and 50 seconds after the fort). The game advances through these stages one at a time. A home claims its larger footprint as it grows, so other buildings and terrain edits cannot overlap it. Housing increases from 6 to 9, 13 and 18; blessed homes also produce more Faith and Devotion at each stage.
 
 Followers provide a little **Faith** to spend on shaping land, building stone circles, blessing huts, converting wildmen, bridges and rituals. **Devotion** is the victory score, earned by productive blessed villages and finished stone circles. The first tribe to reach **1,200 Devotion** wins. Merely waiting with a large population does not earn Devotion.
 
@@ -30,7 +30,7 @@ Unassigned followers now weigh three jobs: **build** an unfinished hut or stone 
 
 ## Controls and running locally
 
-Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its next land and birth milestones. Completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; click the minimap to pan across the world or use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
+Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its land, births and age milestones. Completed sites offer Grow / Worship / Guard controls. Drag to move the map in the same direction as the pointer, right drag to rotate, scroll to zoom; click the minimap to pan across the world or use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
 
 Terrain elevations, decorative pebbles and trees render in batches. A single Raise or Lower updates the affected terrain instance, leaving the rest of the map in place. The minimap refreshes at a lower rate than the game simulation.
 
