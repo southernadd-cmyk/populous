@@ -42,6 +42,7 @@ test('idle followers have housing, but earn no devotion without productive sites
   g.advance(30);
   assert.equal(g.eval('devotion[0]'), 0);
   assert.ok(g.eval('people.filter(p=>p.owner===0).length<=housingCapacity(0)'));
+  assert.ok(g.eval("people.some(p=>p.owner===0&&p.job.startsWith('SUPPORTING'))"));
   assert.ok(g.eval('devotion[1]>0'));
 });
 
@@ -58,6 +59,22 @@ test('one shaped tile can open a plot and prompt an automatic hut', () => {
   assert.equal(g.eval('faith[0] < 45'), true);
   g.advance(25);
   assert.equal(g.eval(`at(${plan.plot.x},${plan.plot.z}).building?.progress`), 1);
+});
+
+test('workers respond to graded belief, distance and unfinished construction', () => {
+  const g = game(.217);
+  g.eval(`for(let b of buildings.filter(b=>b.owner===0))b.progress=1;
+    finishedStone(shrines[0],0);
+    var testWorker=people.find(p=>p.owner===0&&p.type==='brave');
+    testWorker.x=13;testWorker.z=15;testWorker.workSite=null;testWorker.supportSite=null;
+    shrines[0].belief=10`);
+  assert.equal(g.eval('chooseWorkerIntent(testWorker).kind'), 'tend');
+  g.eval('shrines[0].belief=90');
+  assert.equal(g.eval('chooseWorkerIntent(testWorker).kind'), 'support');
+  g.eval(`let edit;while((edit=stonePreparation(shrines[1])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    let plot=stoneCandidate(shrines[1]);startStoneProject(shrines[1],plot.x,plot.z,0)`);
+  assert.equal(g.eval('chooseWorkerIntent(testWorker).kind'), 'build');
+  assert.ok(g.eval('fuzzyNear(5)>fuzzyNear(9)&&fuzzyNear(9)>fuzzyNear(13)'));
 });
 
 test('a bare sacred site requires one shaped tile, a 2×2 foundation and actual follower work', () => {

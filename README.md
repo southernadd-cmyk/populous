@@ -22,6 +22,10 @@ A finished circle has a visible, owner-coloured spiritual health bar. Local Fait
 
 The rival can favour a village network or building circles at sacred sites. Its shaman shapes uneven sacred ground, spends Faith on construction, and its followers build using the same rules. It expands and chooses policies using the same sites and housing rules. Approaching rival shamans trigger an event and a defensive suggestion.
 
+## Follower decisions
+
+Unassigned followers now weigh three jobs: **build** an unfinished hut or stone circle, **tend** belief at a productive site, or **support** a village or circle by staying nearby. Each option gets a graded score from distance, belief, housing pressure, staffing, construction progress and rival proximity. A follower keeps an intention briefly before reconsidering, and a worker carrying wood finishes that delivery. This keeps assignments responsive without sending people back and forth every frame. Player choices for Grow, Worship and Guard still reserve their requested followers; the scoring guides the remaining workers.
+
 ## Controls and running locally
 
 Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or expands a home. Inspecting empty sacred ground explains what it needs; completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
