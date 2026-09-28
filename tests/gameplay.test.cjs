@@ -121,6 +121,17 @@ test('workers respond to graded belief, distance and unfinished construction', (
   assert.ok(g.eval('fuzzyNear(5)>fuzzyNear(9)&&fuzzyNear(9)>fuzzyNear(13)'));
 });
 
+test('spare followers can hunt, mine and explore away from the village', () => {
+  const g = game(.217);
+  g.eval(`for(let b of buildings.filter(b=>b.owner===0))b.progress=1;
+    var roamingWorker=people.find(p=>p.owner===0&&p.type==='brave');
+    roamingWorker.intent=null;roamingWorker.workSite=null;roamingWorker.supportSite=null;`);
+  assert.ok(g.eval("ambientTarget(roamingWorker,'hunt')"), 'woodland provides a hunting destination');
+  assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'high ground provides a mining destination');
+  assert.ok(g.eval("ambientTarget(roamingWorker,'explore')"), 'distant land provides an exploration destination');
+  assert.equal(g.eval("['hunt','mine','explore'].every(kind=>validWorkerIntent({kind,site:ambientTarget(roamingWorker,kind)},0))"), true);
+});
+
 test('a bare sacred site requires one shaped tile, a 2×2 foundation and actual follower work', () => {
   const g = game(.217);
   g.eval('shaman.x=shrines[0].x;shaman.z=shrines[0].z');
