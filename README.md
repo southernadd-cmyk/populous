@@ -1,16 +1,14 @@
-# The Living Land — The Beginning
+# The Living Land — The Living Faith
 
-A browser based, real time 3D god game prototype inspired by the play loop of **Populous: The Beginning**. [Play the current published version](https://southernadd-cmyk.github.io/populous/) (the hosted version may lag this branch).
+A browser based, real-time 3D god game focused on faith and settlement growth. [Play on GitHub Pages](https://southernadd-cmyk.github.io/populous/).
 
-## Play
+## The loop
 
-- Convert wildmen with the shaman, then command braves to build huts from nearby trees.
-- Occupied huts spawn new braves. Followers replenish mana over time.
-- Move the shaman into range to cast Convert, Raise, Lower, Land Bridge and Blast.
-- Send braves toward the opposing tribe. Enemy followers build and raid autonomously.
-- Pause, set 1×/2×/3× speed, drag to pan, right drag to rotate, scroll to zoom.
-- Capture the central shrine with your shaman to break the enemy hearth ward and boost mana. Send three-brave raids, then destroy the hearth and defeat its shaman to win; defend your own hearth to survive.
+Followers and sacred stones generate faith. Faith can be invested in converting wildmen, blessing huts for permanent income, claiming or protecting sacred stones, or shaping land. Total faith earned accumulates as devotion. The first tribe to reach 300 devotion wins. The Ember tribe also grows, blesses huts, and competes for the stones. There is no combat.
 
-This is the first foundation, not an asset or code port of the original. It does not yet have the original's training huts, specialized follower classes, spell charging, multiple tribes, spherical world, or network multiplayer. The original turn based Heartstone prototype is retained in Git history. `vendor/three.module.js` is Three.js r180 under the MIT license; see `vendor/THREE-LICENSE.txt`.
+- Move the shaman beside a sacred stone for three seconds to claim it. Ritual claims it immediately for 45 faith or protects an owned stone for 25 seconds for 30 faith.
+- Braves gather wood, complete hut plans, and roam. Occupied huts create more followers.
+- Convert wildmen for 20 faith, bless a completed hut for 30, or shape land and bridge water.
+- Pause or set 1×/2×/3× speed; drag to pan, right drag to rotate, scroll to zoom.
 
-Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000`. A browser with WebGL 2 support is required. There is no build step or installation for players.
+This prototype uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000`. A browser with WebGL 2 support is required. No installation or account is needed for players.
