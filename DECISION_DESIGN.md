@@ -1,23 +1,30 @@
-# Interesting decisions: design rule for The Living Land
+# The Heartstone: design contract
 
-Sid Meier's GDC session describes gameplay as a series of interesting decisions, and asks how pacing, information and feedback make those decisions work. [GDC Vault: Interesting Decisions](https://gdcvault.com/play/1016165/Interesting).
+This rebuild uses Sid Meier's description of gameplay as a series of interesting decisions. His [GDC 2012 talk](https://gdcvault.com/play/1016165/Interesting) specifically calls out pacing, information and feedback. The game is a small test of those ideas, not a claim that its present balance is final.
 
-Every new system should pass five checks:
+## One short contest
 
-1. **Alternatives:** At least two viable actions serve the current goal.
-2. **Trade-off:** Spending faith, food, time or terrain on one action changes what else can be done.
-3. **Information:** The player can see the relevant state before deciding.
-4. **Feedback:** The map and HUD show what happened immediately and what changed later.
-5. **Pacing:** The result arrives soon enough to inform the next choice, while a larger goal remains.
+You have twelve seasons to win Hearthstone, a neutral village between two gods. Reach 70% influence for two consecutive seasons to win early; otherwise the higher influence at the end of season twelve wins. A season advances only when the player presses **End Season**. Each season has two orders and faith is scarce. The rival's next action is visible before either order is spent.
 
-Current scenario goal: claim Ashfall and hold at least 65% worship for 20 ticks. Expansion adds people and faith but costs shaping and time. Pilgrimage applies continuing pressure at a food cost but takes time to arrive. Revelation shifts worship immediately and costs 24 faith; repeated casts on the same village weaken temporarily. Bloom provides food, repairs scars and wards a friendly village against a foretold Ember action for roughly 17 seconds, at 18 faith. Ember announces its target ten ticks before acting. A player can protect the village or spend that window pursuing Ashfall.
+| Choice | Immediate cost | Delayed benefit | Risk or counter |
+| --- | --- | --- | --- |
+| Raise the marked frontier | 1 order, 2 faith | A new village next season: population, faith and ongoing influence | Gives up an immediate conversion order; rival may found a competing outpost |
+| Send pilgrims | 1 order, 3 people and 10 food | Arrive after two seasons and influence Hearthstone for three | Food and people leave home now; late pilgrims may miss the deadline |
+| Revelation near Hearthstone | 1 order, 3 faith | Immediate influence | Repeating it during one season yields only 6%; fervour recovers slowly between seasons |
+| Bloom a friendly village | 1 order, 2 faith | Food and a ward for the announced Ember attack | Does not directly move Hearthstone's influence |
+| Earthquake an Ember village | 1 order, 4 faith | Destroys plots, food and two seasons of local pressure | Expensive; casting close to Hearthstone scares it away |
+| Shape elsewhere | 1 order, 2 faith | Suitable flat land can expand housing and farms | Poor terrain or timing may waste the order |
 
-## Playtest questions
+Ember announces one of three moves: inspire Hearthstone, attack a food store, or found a forward village. Forecasts let the player choose a response. Events resolve at the season boundary; changed buildings, pilgrim positions, food, faith and influence appear in both the map and HUD.
 
-- In the first 60 seconds, can a player explain two plausible ways to advance?
-- When an omen appears, does the player understand what they would lose by ignoring it?
-- In a five-minute session, do players use more than one route to Ashfall, or is one action still dominant?
-- Can players point to a village whose fate changed because of their choice?
-- Does a loss teach a concrete adjustment for the next attempt?
+## Checks before adding a feature
 
-If all players repeat one move, change the underlying cost, counter or timing before adding another tool. Observe real play before treating these balances as final.
+1. Does it offer an alternative to a current useful choice?
+2. Does it spend something that matters in this scenario?
+3. Is its likely effect visible before the player commits?
+4. Can the player point to the result on the map and in the numbers?
+5. Does it alter the next decision soon enough to matter?
+
+## Playtest targets
+
+Test a fresh seed with three new players. Ask what they expect before each first action, then whether its result matched their expectation. Note which orders they use and why. A one-action strategy should not always dominate; at least two plausible plans should be able to win a twelve-season contest. The current deterministic simulations show Revelation alone loses, forward growth plus Revelation wins, and forward growth plus pilgrimage can narrowly win. Human play may expose very different exploits.
