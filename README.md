@@ -4,7 +4,7 @@ A real-time, browser-based god game about shaping land, growing followers, and b
 
 ## The gameplay loop
 
-Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Finished huts provide housing; a hut with enough level ground and growing followers expands into a larger home with a garden. More homes make room for more followers.
+Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Families grow automatically as workers support the settlement. Level ground around a hut turns it into a **house** (four clear neighbours, two births), a **fort** (six neighbours, four births and a clear 2×2 footprint), then a **castle** (all eight neighbours, six births and a clear 3×3 footprint). A home claims its larger footprint as it grows, so other buildings and terrain edits cannot overlap it. Housing increases from 6 to 9, 13 and 18; blessed homes also produce more Faith and Devotion at each stage.
 
 Followers provide a little **Faith** to spend on shaping land, building stone circles, blessing huts, converting wildmen, bridges and rituals. **Devotion** is the victory score, earned by productive blessed villages and finished stone circles. The first tribe to reach **1,200 Devotion** wins. Merely waiting with a large population does not earn Devotion.
 
@@ -28,6 +28,6 @@ Unassigned followers now weigh three jobs: **build** an unfinished hut or stone 
 
 ## Controls and running locally
 
-Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or expands a home. Inspecting empty sacred ground explains what it needs; completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
+Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its next land and birth milestones. Completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
 
 The game uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000` in a WebGL 2 browser. Players need no installation or account. Run the logic checks with `node --test tests/gameplay.test.cjs` when developing.

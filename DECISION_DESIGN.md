@@ -12,7 +12,7 @@ The player reshapes a living landscape and guides a tribe to win a contest of de
 | Stone focus | Shape a 2×2 site foundation, spend 20 Faith and commit builders to a circle. | Early investment and fewer hut builders for later Faith, worship and festivals. | Rival shapes competing sites, slows a project with its shaman or contests a finished circle. |
 | Flexible | Develop one village, then choose the best reachable stone or plot. | Spend Faith on expansion, festivals or protection. | Rival's selected style changes the timing and pressure. |
 
-Grow on a productive site attracts huts on nearby level 2×2 plots as housing approaches its limit. A single tile change can also unlock a plot immediately. Two births and enough level neighbours expand a hut; further growth can expand it again. Expanded homes gain housing and Devotion, and show a larger house and garden. This makes land shaping matter after the first hut is built.
+Grow on a productive site attracts huts on nearby level 2×2 plots as housing approaches its limit. A single tile change can also unlock a plot immediately. A hut grows into a house after two births and four clear level neighbours, a fort after four births and six neighbours on a clear 2×2 footprint, and a castle after six births and all eight neighbours on a clear 3×3 footprint. Later buildings claim those tiles, add housing and improve the Faith and Devotion of a blessed village. Their models change from thatch and timber to a palisade and finally a stone keep with towers. This makes land shaping matter after the first hut is built.
 
 Free workers compare fuzzy degrees of proximity, building urgency, low belief, housing pressure and local staffing. They select the strongest build, tend or support intention, hold it for a short interval, then reconsider. Supporting workers stay near villages or completed circles, where their presence improves births and local belief. Delivering wood and the player-assigned Worship and Guard roles remain dependable commitments.
 
@@ -28,6 +28,6 @@ Free workers compare fuzzy degrees of proximity, building urgency, low belief, h
 
 ## Verification and next playtest
 
-The logic checks cover a one-tile plot unlock, automatic hut planning, graded follower job changes, housing and passive Devotion, the required stone construction sequence, Guard pressure, and winning scripts for both village and stone strategies against both opponent styles. These scripts establish viable mechanics, not human enjoyment.
+The logic checks cover a one-tile plot unlock, automatic hut planning, graded follower job changes, all four building stages and their reserved footprints, housing and passive Devotion, the required stone construction sequence, Guard pressure, and winning scripts for both village and stone strategies against both opponent styles. These scripts establish viable mechanics, not human enjoyment.
 
 A WebGL playtest should check that the first terrain edit feels worthwhile, followers reach the promised stone foundation, the exact click target is clear without a tutorial, a threatened stone gives enough response time, and the two strategies stay competitive when a human makes imperfect decisions. Tune pacing from those observations before adding new currencies or powers.

@@ -128,6 +128,45 @@ test('one festival starts a tribe-wide cooldown across sites', () => {
   assert.equal(g.eval('festivalReady(shrines[1])'), false);
 });
 
+test('an occupied hut grows into a house, fort and castle on level land', () => {
+  const g = game(.217);
+  g.eval(`var home=at(9,15).building;home.progress=1;home.blessed=true;home.belief=70;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(dx||dz){let tile=at(9+dx,15+dz);tile.h=1;tile.tree=false}
+    for(let [dx,dz] of [[-1,-1],[0,-1],[1,-1],[1,0]])at(9+dx,15+dz).h=2;
+    home.born=2`);
+  const firstCapacity = g.eval('housingCapacity(0)');
+  g.eval('ai(.1)');
+  assert.equal(g.eval('home.level'), 2);
+  assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 3);
+  const houseDevotion = g.eval('siteDevotion(home)');
+
+  g.eval('home.born=4;at(8,15).h=2');
+  assert.equal(g.eval('terrainBrush(9,16,1).upgrade.level'), 3);
+  g.eval('terrainBrush(9,16,1,true)');
+  assert.equal(g.eval('home.level'), 3);
+  assert.equal(g.eval('home.footprint.length'), 4);
+  assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 7);
+
+  g.eval('home.born=5;at(8,16).h=2;terrainBrush(10,16,1,true)');
+  assert.equal(g.eval('home.level'), 3, 'level land alone does not produce a castle');
+  g.eval('home.born=6;ai(.1)');
+  assert.equal(g.eval('home.level'), 4);
+  assert.equal(g.eval('home.footprint.length'), 9);
+  assert.equal(g.eval('home.footprint.every(q=>at(q.x,q.z).building===home)'), true);
+  assert.equal(g.eval('terrainBrush(10,16,1).changed'), 0);
+  assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 12);
+  assert.ok(g.eval('siteDevotion(home)') > houseDevotion);
+  g.eval(`home.blessed=false;mode='bless';faith[0]=100;action(10,16)`);
+  assert.equal(g.eval('home.blessed'), true, 'the castle can be blessed from its outer footprint');
+
+  const blocked = game(.217);
+  blocked.eval(`var home=at(9,15).building;home.progress=1;home.born=6;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(dx||dz){let tile=at(9+dx,15+dz);tile.h=2;tile.tree=false}
+    var neighbour=addBuilding(10,16,1,'hut',true);ai(.1)`);
+  assert.equal(blocked.eval('home.level'), 3);
+  assert.equal(blocked.eval('at(10,16).building===neighbour'), true);
+});
+
 const villagePlan = `{
   if(faith[0]>=30){let hut=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed);
     if(hut){if(dist(shaman,hut)<=5.5){mode='bless';action(hut.x,hut.z);hut.policy=buildings.some(b=>b.owner===0&&b.blessed&&b!==hut&&b.policy==='grow')?'worship':'grow';syncSitePolicies(0)}else shaman.goal={x:hut.x,z:hut.z}}}
