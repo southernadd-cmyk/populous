@@ -18,6 +18,7 @@ function game(seed) {
     const unitsGroup={children:[]},fxGroup={children:[]},hoverGroup={children:[]},box={},sphere={},cone={},cyl={},ringGeo={};
     ${logic}
     renderTerrain=()=>{};renderObjects=()=>{};updateUI=()=>{};
+    let refreshCalls=0;refreshTerrainAt=()=>{refreshCalls++};
     ping=()=>{};log=()=>{};toast=()=>{};cameraTarget=()=>{};updateCamera=()=>{};
     finish=win=>{ended=win?'victory':'defeat';running=false};
     makeWorld();
@@ -73,7 +74,8 @@ test('land bridges cross the new rivers and clear the water markers',()=>{
   const g=game(.217);
   g.eval("var riverZ=Array.from({length:18},(_,z)=>z).find(z=>at(8,z).feature==='river')");
   assert.equal(g.eval('bridgeTiles(8,riverZ).every(p=>p.x===8)'),true);
-  g.eval("shaman.x=8;shaman.z=riverZ+2;mode='bridge';faith[0]=100;action(8,riverZ)");
+  g.eval("refreshCalls=0;shaman.x=8;shaman.z=riverZ+2;mode='bridge';faith[0]=100;action(8,riverZ)");
+  assert.ok(g.eval('refreshCalls>0'),'Land Bridge must refresh the rendered terrain mesh');
   assert.equal(g.eval('at(8,riverZ).h'),1);
   assert.equal(g.eval('at(8,riverZ).feature'),null);
   assert.equal(g.eval('faith[0]'),70);
@@ -97,7 +99,9 @@ test('one shaped tile can open a plot and prompt an automatic hut', () => {
   }return null})()`);
   assert.ok(plan, 'a useful land edit must be possible near the opening village');
   const before = g.eval('buildings.length');
+  g.eval('refreshCalls=0');
   g.eval(`mode='${plan.dir > 0 ? 'raise' : 'lower'}';action(${plan.x},${plan.z});ai(.1)`);
+  assert.ok(g.eval('refreshCalls>0'),'Raise/Lower must refresh the rendered terrain mesh');
   assert.equal(g.eval('buildings.length'), before + 1);
   assert.equal(g.eval(`at(${plan.plot.x},${plan.plot.z}).building?.owner`), 0);
   assert.equal(g.eval('faith[0] < 45'), true);
