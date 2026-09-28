@@ -11,6 +11,12 @@ test('inspect raycasts the visible building meshes rather than only terrain',()=
  assert.match(source,/intersectObjects\(objects\.children\.filter\(o=>o\.userData\.inspectBuilding\),false\)/);
 });
 
+test('inspect opens the site card for ordinary friendly homes, not only blessed ones',()=>{
+ assert.match(source,/occupied\?\.owner===0&&occupied\.type==='hut'/);
+ assert.match(source,/home=buildings\.includes\(site\)&&site\?\.owner===0&&site\?\.type==='hut'/);
+ assert.match(source,/unblessed: use Bless to make this home generate Faith and Devotion/);
+});
+
 test('sloped terrain preserves logical tile centres and remains raycastable',()=>{
  const W=8,H=8,tiles=Array.from({length:W*H},()=>({h:2,tree:false})),seed=2026;
  const mat=color=>new THREE.MeshStandardMaterial({color});
