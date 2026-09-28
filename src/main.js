@@ -89,7 +89,7 @@ function makeWorld(){
  cameraTarget(CAMPS[0].x+(stage.clientWidth<760?0:5),CAMPS[0].z)
 }
 function addBuilding(x,z,owner,type,complete=false){let t=at(x,z);if(!t||t.h<1||t.building)return null;let b={x,z,owner,type,progress:complete?1:0,wood:complete?3:0,blessed:false,policy:'grow',level:1,born:0,completedAt:complete?elapsed:null,lastGrowthAt:complete?elapsed:null,pop:0,spawn:0,footprint:[{x,z}]};buildings.push(b);t.building=b;return b}
-function addPerson(owner,x,z,type){let p={owner,x,z,type,goal:null,work:0,carry:0,idle:0,role:'worker',worshipSite:null,guardSite:null,workSite:null,tendSite:null,supportSite:null,intent:null,intentUntil:0,tendCooldown:0,route:null,routeGoal:null,job:type==='wild'?'ROAMING':'IDLE'};people.push(p);return p}
+function addPerson(owner,x,z,type){let p={owner,x,z,type,goal:null,work:0,carry:0,ambientCarry:null,idle:0,role:'worker',worshipSite:null,guardSite:null,workSite:null,tendSite:null,supportSite:null,intent:null,intentUntil:0,tendCooldown:0,route:null,routeGoal:null,job:type==='wild'?'ROAMING':'IDLE'};people.push(p);return p}
 function placeTerrainInstance(entry,slot,x,z,h){
  let px=x-W/2+.5,pz=z-H/2+.5,y=h*.48;
  instanceTransform.position.set(px,y/2-.015,pz);instanceTransform.scale.set(.98,y,.98);instanceTransform.updateMatrix();entry.side.setMatrixAt(slot,instanceTransform.matrix);
@@ -161,7 +161,7 @@ function renderStone(site){
 }
 function renderBuilding(b){
  let p=b.level===3&&b.type==='hut'?pos(b.footprint.reduce((sum,t)=>sum+t.x,0)/4,b.footprint.reduce((sum,t)=>sum+t.z,0)/4):pos(b.x,b.z),roof=roofMats[b.owner];
- const add=(geo,material,x,y,z,sx,sy,sz)=>mesh(geo,material,objects,p.x+x,p.y+y,p.z+z,sx,sy,sz);
+ const add=(geo,material,x,y,z,sx,sy,sz)=>{let part=mesh(geo,material,objects,p.x+x,p.y+y,p.z+z,sx,sy,sz);part.userData.inspectBuilding=b;return part};
  if(b.progress<1){add(box,roof,0,.025,0,.76,.05,.76);for(let x of [-.31,.31])for(let z of [-.31,.31])add(cyl,woodMat,x,.17,z,.045,.32,.045);if(b.wood)add(box,woodMat,0,.1,0,.4,.13,.4);return}
  if(b.type==='hearth'){add(cyl,stoneMat,0,.16,0,.78,.32,.78);add(cyl,roof,0,.48,0,.45,.45,.45);add(cone,roof,0,.92,0,.6,.55,.6);add(sphere,hearthGlow[b.owner],0,1.2,0,.14,.14,.14);return}
  if(b.level===1){
@@ -236,7 +236,7 @@ function renderUnits(time){for(let child of [...unitsGroup.children])if(!people.
  for(let p of people){let kind=p.owner+':'+p.type;if(!p.visual||p.visual.userData.kind!==kind){if(p.visual)unitsGroup.remove(p.visual);p.visual=followerRig(p);p.lastX=p.x;p.lastZ=p.z;p.walkPhase=0}
  let rig=p.visual,v=pos(p.x,p.z),dx=p.x-p.lastX,dz=p.z-p.lastZ,moving=Math.hypot(dx,dz)>.0005;rig.position.set(v.x,v.y,v.z);if(moving){rig.rotation.y=Math.atan2(dx,dz);p.walkPhase+=Math.hypot(dx,dz)*18}p.lastX=p.x;p.lastZ=p.z;
  let swing=moving?Math.sin(p.walkPhase)*.5:Math.sin(time*.0015+p.x)*.035;rig.userData.legs[0].rotation.x=swing;rig.userData.legs[1].rotation.x=-swing;rig.userData.arms[0].rotation.x=-swing*.7;rig.userData.arms[1].rotation.x=swing*.7;rig.userData.body.position.y=(moving?Math.abs(Math.sin(p.walkPhase))*.025:Math.sin(time*.002+p.x)*.018);if(rig.userData.halo)rig.userData.halo.rotation.z=time*.00045;
- if(rig.userData.bundle)rig.userData.bundle.visible=!!p.carry;if(rig.userData.worshipHalo)rig.userData.worshipHalo.visible=p.role==='worshipper'||!!p.tendSite;}}
+ if(rig.userData.bundle)rig.userData.bundle.visible=!!(p.carry||p.ambientCarry);if(rig.userData.worshipHalo)rig.userData.worshipHalo.visible=p.role==='worshipper'||!!p.tendSite;}}
 
 function validLand(x,z){let t=at(x,z);return !!t&&t.h>0}
 function nearest(list,p){let best=null,d=Infinity;for(let item of list){let n=dist(item,p);if(n<d){best=item;d=n}}return best}
@@ -306,7 +306,24 @@ function syncSitePolicies(owner){
 function fuzzyHigh(value,low,high){return clamp((value-low)/(high-low),0,1)}
 function fuzzyNear(distance,close=1,far=11){return 1-fuzzyHigh(distance,close,far)}
 function activeProject(site,owner){return buildings.includes(site)?site.owner===owner&&site.progress<1:shrines.includes(site)&&site.projectOwner===owner&&site.progress<1}
-function validWorkerIntent(intent,owner){if(!intent)return false;let s=intent.site;return intent.kind==='build'?activeProject(s,owner):intent.kind==='tend'?validWorshipSite(s,owner)&&siteBelief(s)<90:buildings.includes(s)?s.owner===owner&&s.progress===1:shrines.includes(s)&&s.owner===owner}
+function validWorkerIntent(intent,owner){
+ if(!intent)return false;let s=intent.site;
+ if(intent.kind==='build')return activeProject(s,owner);
+ if(intent.kind==='tend')return validWorshipSite(s,owner)&&siteBelief(s)<90;
+ if(intent.kind==='support')return buildings.includes(s)?s.owner===owner&&s.progress===1:shrines.includes(s)&&s.owner===owner;
+ if(!s||!['hunt','mine','explore'].includes(intent.kind)||!validLand(Math.round(s.x),Math.round(s.z)))return false;
+ let t=at(Math.round(s.x),Math.round(s.z));return intent.kind==='hunt'?!!t.tree:intent.kind==='mine'?t.h>=4:!t.building
+}
+function ambientTarget(p,kind){
+ let homes=buildings.filter(b=>b.owner===p.owner&&b.progress===1),anchor=nearest(homes,p);if(!anchor)return null;
+ let desired=kind==='hunt'?6:kind==='mine'?9:12,best=null,index=Math.max(0,people.indexOf(p)),phase=Math.floor(elapsed/8);
+ for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){let t=at(x,z),point={x,z};if(!t?.h||t.building)continue;let d=dist(point,anchor);if(d<3||d>15)continue;
+  if(kind==='hunt'&&!t.tree||kind==='mine'&&(t.h<4||t.tree)||kind==='explore'&&(d<7||t.tree))continue;
+  let crowded=people.some(q=>q!==p&&q.owner===p.owner&&q.intent?.kind===kind&&q.intent.site&&dist(q.intent.site,point)<1.7);if(crowded)continue;
+  let score=Math.abs(d-desired)+rand(x+index*5,z+phase,seed+103)*2;if(!best||score<best.score)best={x,z,score}
+ }
+ return best&&{x:best.x,z:best.z}
+}
 function chooseWorkerIntent(p){
  let owner=p.owner,capacity=housingCapacity(owner),population=people.filter(q=>q.owner===owner).length,housingPressure=fuzzyHigh(population/Math.max(1,capacity),.55,.95),vacancy=fuzzyHigh(capacity-population,1,7),best=null;
  const offer=(kind,site,score)=>{if(!best||score>best.score)best={kind,site,score}};
@@ -321,9 +338,13 @@ function chooseWorkerIntent(p){
   if(siteBelief(site)<90&&elapsed>=p.tendCooldown&&!people.some(q=>q!==p&&q.tendSite===site))offer('tend',site,.25+.38*lowBelief+.15*near+.1*shortage+(p.tendSite===site?.08:0));
  }
  for(let site of [...buildings.filter(b=>b.owner===owner&&b.progress===1),...shrines.filter(s=>s.owner===owner)]){
-  let radius=shrines.includes(site)?4:2.6,near=fuzzyNear(dist(p,site)),workers=people.filter(q=>q.owner===owner&&q.type==='brave'&&q.role==='worker'&&dist(q,site)<radius).length,inbound=people.filter(q=>q!==p&&q.owner===owner&&q.role==='worker'&&q.supportSite===site&&dist(q,site)>=radius).length,shortage=1-fuzzyHigh(workers+inbound,1,3),belief=validWorshipSite(site,owner)?1-fuzzyHigh(siteBelief(site),35,85):0;
-  if(inbound>=2&&p.supportSite!==site)continue;
-  offer('support',site,.19+.18*near+.18*shortage+.13*vacancy*(site.type==='hut'?1:.4)+.12*belief+.06*(site.policy==='grow'?1:0)+(p.supportSite===site?.1:0)-.05*inbound)
+  let radius=shrines.includes(site)?4:2.6,near=fuzzyNear(dist(p,site)),workers=people.filter(q=>q.owner===owner&&q.type==='brave'&&q.role==='worker'&&dist(q,site)<radius).length,inbound=people.filter(q=>q!==p&&q.owner===owner&&q.role==='worker'&&q.supportSite===site&&dist(q,site)>=radius).length,needed=Math.max(0,2-workers-inbound),belief=validWorshipSite(site,owner)?1-fuzzyHigh(siteBelief(site),35,85):0;
+  if(!needed&&belief<.7)continue;if(inbound>=2&&p.supportSite!==site)continue;
+  offer('support',site,.2+.2*near+.2*Math.min(1,needed)+.1*vacancy*(site.type==='hut'?1:.4)+.13*belief+.05*(site.policy==='grow'?1:0)+(p.supportSite===site?.08:0)-.05*inbound)
+ }
+ let workers=people.filter(q=>q.owner===owner&&q.type==='brave'&&q.role==='worker').length,ambient=people.filter(q=>q.owner===owner&&['hunt','mine','explore'].includes(q.intent?.kind)).length,maxAmbient=Math.max(1,Math.floor(workers*.5));
+ if(workers>=5&&ambient<maxAmbient){let order=['hunt','mine','explore'],start=(people.indexOf(p)+Math.floor(elapsed/9))%order.length;
+  for(let i=0;i<order.length;i++){let kind=order[(start+i)%order.length],limit=kind==='explore'?Math.max(1,Math.floor(workers/7)):Math.max(1,Math.floor(workers/6)),active=people.filter(q=>q.owner===owner&&q.intent?.kind===kind).length;if(active>=limit)continue;let target=ambientTarget(p,kind);if(target){offer(kind,target,.27+fuzzyNear(dist(p,target),3,15)*.08);break}}
  }
  return best
 }
@@ -368,11 +389,18 @@ function ai(dt){
   if(p.type==='brave'&&p.role==='worker'&&p.job.startsWith('SUPPORTING')&&p.goal&&elapsed>=p.intentUntil)p.goal=null;
   if(p.type==='brave'&&p.tendSite){if(p.tendSite.owner!==own||siteBelief(p.tendSite)>=90){p.tendSite=null;p.intent=null;p.goal=null;p.work=0}else{p.job='TENDING SHRINE';if(dist(p,p.tendSite)>1.35){if(!p.goal)p.goal={x:p.tendSite.x+(p.x>p.tendSite.x?.8:-.8),z:p.tendSite.z};move(p,p.goal,dt,1.15)}else{p.goal=null;p.work+=dt;if(p.work>=3){p.tendSite.belief=clamp(siteBelief(p.tendSite)+4,10,100);p.tendSite=null;p.intent=null;p.tendCooldown=elapsed+22;p.work=0}}continue}}
   if(p.goal){move(p,p.goal,dt,p.type==='shaman'?1.5:1.3);continue}
+  if(p.ambientCarry&&!p.goal)p.ambientCarry=null;
   if(p.type==='shaman'){if(own===1){let sacred=shrines.filter(s=>s.owner===1),rough=nearest(sacred.filter(s=>!regionalVows[1].has(faithRegion(s))&&terraceScore(s)<STONE_RITE_TERRACE),p),aggressive=aiStyle==='stones'||regionalVows[1].size<REGIONS.length||devotion[0]>devotion[1]+180,target=aggressive&&elapsed>=enemyPilgrimAt?nearest(shrines.filter(s=>s.owner===0&&s.lock<=0||s.owner===2&&s.projectOwner!==1),p):null;if(rough&&faith[1]>=4){p.job='SHAPING SACRED TERRACE';if(dist(p,rough)>4.5)p.goal={x:rough.x,z:rough.z};else if(elapsed>=(p.nextStoneEdit||0)){let edit=bestTerraceBrush(rough);if(edit&&terrainBrush(edit.x,edit.z,edit.dir,true,1).changed){faith[1]-=4;p.nextStoneEdit=elapsed+2;renderObjects();log('Ember levelled a sacred terrace.')}}}else if(target){p.job='PILGRIMAGE';if(dist(p,target)>(target.owner===2&&target.projectOwner===2?2.4:1.2))p.goal={x:target.x,z:target.z};else if(target.owner===2&&target.projectOwner===2){let plot=stoneCandidate(target);if(plot&&faith[1]>=STONE_COST)startStoneProject(target,plot.x,plot.z,1);else if(!plot&&faith[1]>=4&&elapsed>=(p.nextStoneEdit||0)){let edit=stonePreparation(target);if(edit&&terrainBrush(edit.x,edit.z,edit.dir,true,1).changed){faith[1]-=4;p.nextStoneEdit=elapsed+2;renderObjects();log('Ember shaped sacred ground for a stone circle.')}}}}else if(aiStyle==='villages'&&sacred.length){let home=nearest(sacred,p);p.job='GUARDING SACRED GROUND';if(dist(p,home)>1.25)p.goal={x:home.x,z:home.z}}else{let wild=nearest(people.filter(q=>q.owner===2),p);if(wild&&faith[1]>=20&&dist(wild,p)<4&&people.filter(q=>q.owner===1).length<housingCapacity(1)){wild.owner=1;wild.type='brave';wild.goal=null;faith[1]-=20;log('Ember welcomed a wildman to its tribe.')}}}continue}
   if(p.carry&&!buildings.some(b=>activeProject(b,own))){p.carry=0;renderObjects()}
   let keep=p.intent&&elapsed<p.intentUntil&&validWorkerIntent(p.intent,own),intent=keep?p.intent:chooseWorkerIntent(p);
   p.intent=intent;if(!keep)p.intentUntil=elapsed+3;p.workSite=intent?.kind==='build'?intent.site:null;p.supportSite=intent?.kind==='support'?intent.site:null;
   if(intent?.kind==='tend'){p.tendSite=intent.site;p.work=0;p.job='TENDING SHRINE';continue}
+  if(['hunt','mine','explore'].includes(intent?.kind)){let target=intent.site,label=intent.kind==='hunt'?'HUNTING':intent.kind==='mine'?'MINING':'EXPLORING';p.job=label;
+   if(dist(p,target)>.65){p.goal=target;continue}
+   p.goal=null;p.work+=dt;let duration=intent.kind==='explore'?2:2.8;if(p.work>=duration){p.work=0;p.intent=null;p.intentUntil=0;let home=nearest(buildings.filter(b=>b.owner===own&&b.progress===1),p);
+    if(intent.kind==='hunt'){p.ambientCarry='game';p.job='RETURNING WITH GAME'}else if(intent.kind==='mine'){p.ambientCarry='stone';p.job='HAULING STONE'}else p.job='RETURNING FROM SCOUTING';
+    if(home)p.goal=approachSite(p,home);p.idle=2+rand(Math.floor(elapsed),people.indexOf(p),seed+151)*3
+   }continue}
   let site=intent?.kind==='build'?intent.site:null;
   if(site){if(shrines.includes(site)){let centre={x:site.buildX+.5,z:site.buildZ+.5};p.job='BUILDING STONE CIRCLE';if(dist(p,centre)>1.05){p.goal=approachSite(p,centre);continue}let rival=people.some(q=>q.type==='shaman'&&q.owner===1-own&&dist(q,site)<1.55),before=Math.floor(site.progress*5);site.progress=clamp(site.progress+dt*(rival?.03:.06),0,1);if(site.progress>=1)consecrateStone(site,own);else if(Math.floor(site.progress*5)!==before)renderObjects();continue}
    if(p.carry){p.job='HAULING WOOD';if(dist(p,site)>1){p.goal={x:site.x+(p.x>site.x?.7:-.7),z:site.z};continue}site.wood=Math.min(3,site.wood+1);p.carry=0;renderObjects();if(site.wood===3&&own===0)log('Wood delivered. Braves are building the hut.');continue}
@@ -428,7 +456,9 @@ function drawMinimap(force=false){
 function cameraTarget(x,z){target.set(x-W/2,0,z-H/2);updateCamera()}
 function updateCamera(){target.x=clamp(target.x,-W/2+4,W/2-4);target.z=clamp(target.z,-H/2+4,H/2-4);let size=15/zoom,aspect=Math.max(.5,stage.clientWidth/stage.clientHeight);camera.left=-size*aspect;camera.right=size*aspect;camera.top=size;camera.bottom=-size;camera.position.set(target.x+Math.sin(angle)*size*1.4,size*1.1,target.z+Math.cos(angle)*size*1.4);camera.lookAt(target);camera.updateProjectionMatrix();sun.position.set(target.x-13,23,target.z+8);sun.target.position.set(target.x,0,target.z);sun.target.updateMatrixWorld();drawMinimap()}
 function panCamera(dx,dy){let scale=30/zoom/Math.max(stage.clientHeight,1);target.x+=(-dx*Math.cos(angle)-dy*Math.sin(angle))*scale;target.z+=(dx*Math.sin(angle)-dy*Math.cos(angle))*scale;updateCamera()}
-function pick(e){let r=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);let hits=ray.intersectObjects([...terrain.children,water]);if(!hits.length)return null;let v=hits[0].point,x=Math.round(v.x+W/2-.5),z=Math.round(v.z+H/2-.5);return x>=0&&z>=0&&x<W&&z<H?{x,z}:null}
+function pick(e){let r=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);
+ if(mode==='inspect'){let hit=ray.intersectObjects(objects.children.filter(o=>o.userData.inspectBuilding),false)[0],building=hit?.object?.userData.inspectBuilding;if(building)return {x:building.x,z:building.z,building}}
+ let hits=ray.intersectObjects([...terrain.children,water]);if(!hits.length)return null;let v=hits[0].point,x=Math.round(v.x+W/2-.5),z=Math.round(v.z+H/2-.5);return x>=0&&z>=0&&x<W&&z<H?{x,z}:null}
 let previewAt=0;
 function landPreview(e){let preview=$('#landPreview');if(drag||selectedSite||!['raise','lower','hut','stone'].includes(mode)){preview.hidden=true;clear(hoverGroup);return}if(performance.now()-previewAt<80)return;previewAt=performance.now();let point=pick(e);clear(hoverGroup);if(!point){preview.hidden=true;return}
  let {x,z}=point,plan=['hut','stone'].includes(mode)?null:terrainBrush(x,z,mode==='raise'?1:-1),sacred=mode==='stone'?stoneSiteForPlot(x,z):null,plot=mode==='hut'&&canPlaceHut(x,z)?{x,z}:mode==='stone'&&canBuildStone(sacred,x,z)?{x,z}:plan?.newStonePad||plan?.newPlot;
