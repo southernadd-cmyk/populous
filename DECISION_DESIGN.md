@@ -1,30 +1,30 @@
-# The Heartstone: design contract
+# Gameplay decisions — current build
 
-This rebuild uses Sid Meier's description of gameplay as a series of interesting decisions. His [GDC 2012 talk](https://gdcvault.com/play/1016165/Interesting) specifically calls out pacing, information and feedback. The game is a small test of those ideas, not a claim that its present balance is final.
+The player reshapes a living landscape and guides a tribe to win a contest of devotion. There are no seasons or combat. Actions should have a visible consequence within a few seconds; site policies make the next few minutes play out differently.
 
-## One short contest
+## One loop, several plans
 
-You have twelve seasons to win Hearthstone, a neutral village between two gods. Reach 70% influence for two consecutive seasons to win early; otherwise the higher influence at the end of season twelve wins. A season advances only when the player presses **End Season**. Each season has two orders and faith is scarce. The rival's next action is visible before either order is spent.
+**Shape useful ground → followers settle or worship → productive sites earn Devotion and Faith → spend Faith to extend or protect them.** Workers build and gather automatically. Faith is the spendable stock; Devotion is the single victory score. Passive followers earn only Faith. A finished, blessed home or an owned stone earns Devotion according to worshippers and local belief.
 
-| Choice | Immediate cost | Delayed benefit | Risk or counter |
+| Plan | Opening decision | Ongoing tradeoff | Opponent response |
 | --- | --- | --- | --- |
-| Raise the marked frontier | 1 order, 2 faith | A new village next season: population, faith and ongoing influence | Gives up an immediate conversion order; rival may found a competing outpost |
-| Send pilgrims | 1 order, 3 people and 10 food | Arrive after two seasons and influence Hearthstone for three | Food and people leave home now; late pilgrims may miss the deadline |
-| Revelation near Hearthstone | 1 order, 3 faith | Immediate influence | Repeating it during one season yields only 6%; fervour recovers slowly between seasons |
-| Bloom a friendly village | 1 order, 2 faith | Food and a ward for the announced Ember attack | Does not directly move Hearthstone's influence |
-| Earthquake an Ember village | 1 order, 4 faith | Destroys plots, food and two seasons of local pressure | Expensive; casting close to Hearthstone scares it away |
-| Shape elsewhere | 1 order, 2 faith | Suitable flat land can expand housing and farms | Poor terrain or timing may waste the order |
+| Village network | Bless a home and set a growth hub; shape plots as housing fills. | More builders now versus worshippers scoring now. | Rival pilgrims may claim stones while the player expands. |
+| Stone focus | Send the shaman to stones; assign worshippers and level four terrace tiles. | Faith output and festivals versus leaving a stone open to capture. | Rival guards a threatened stone or sends its shaman elsewhere. |
+| Flexible | Develop one village, then choose the best reachable stone or plot. | Spend Faith on expansion, festivals or protection. | Rival's selected style changes the timing and pressure. |
 
-Ember announces one of three moves: inspire Hearthstone, attack a food store, or found a forward village. Forecasts let the player choose a response. Events resolve at the season boundary; changed buildings, pilgrim positions, food, faith and influence appear in both the map and HUD.
+Grow on a productive site attracts huts on nearby level 2×2 plots as housing approaches its limit. A single tile change can also unlock a plot immediately. Two births and enough level neighbours expand a hut; further growth can expand it again. Expanded homes gain housing and Devotion, and show a larger house and garden. This makes land shaping matter after the first hut is built.
 
-## Checks before adding a feature
+## Rules that keep the choices readable
 
-1. Does it offer an alternative to a current useful choice?
-2. Does it spend something that matters in this scenario?
-3. Is its likely effect visible before the player commits?
-4. Can the player point to the result on the map and in the numbers?
-5. Does it alter the next decision soon enough to matter?
+- Each land spell changes exactly one tile for 4 Faith. The tile preview explains when an edit opens a plot, expands a home, or improves a stone.
+- A site has one policy: **Grow**, **Worship**, or **Guard** (stones only). Policies automatically move available followers, while leaving three workers free when assigning worshippers.
+- Stones use one coloured spiritual health bar. A keeper on Guard slows pressure; a nearby friendly shaman, worshippers, or a Ritual also helps. The rival uses the same capture rules.
+- A stone's first four aligned neighbouring tiles improve output. Later matching tiles do not provide more bonuses, so reshaping the whole ring is optional.
+- A Festival needs two present worshippers, belief of at least 55 and 70 Faith. The whole tribe then waits 60 seconds before another celebration, keeping this a timing choice.
+- The opponent chooses a settlement or pilgrimage emphasis per map. It cannot maximise both approaches at once, and it switches to Guard when its stones are threatened.
 
-## Playtest targets
+## Verification and next playtest
 
-Test a fresh seed with three new players. Ask what they expect before each first action, then whether its result matched their expectation. Note which orders they use and why. A one-action strategy should not always dominate; at least two plausible plans should be able to win a twelve-season contest. The current deterministic simulations show Revelation alone loses, forward growth plus Revelation wins, and forward growth plus pilgrimage can narrowly win. Human play may expose very different exploits.
+The logic checks cover a one-tile plot unlock, automatic hut planning, housing and passive Devotion, Guard pressure, and winning scripts for both village and stone strategies against both opponent styles. Scripted victories currently take roughly **2½–3¼ minutes** on the tested seeds. These scripts establish viable mechanics, not human enjoyment.
+
+A WebGL playtest should check that the first terrain edit feels worthwhile, followers reach the promised plot, the two choices are clear without a tutorial, a threatened stone gives enough response time, and the two strategies stay competitive when a human makes imperfect decisions. Tune pacing from those observations before adding new currencies or powers.
