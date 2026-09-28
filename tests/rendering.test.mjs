@@ -8,6 +8,12 @@ const source=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const terrainCode=source.slice(source.indexOf('function placeTerrainInstance('),source.indexOf('function renderStone('));
 const treeCode=source.slice(source.indexOf('function renderObjects(){'),source.indexOf('function updateShrineVisuals()'));
 
+
+test('inspect raycasts the visible building meshes rather than only terrain',()=>{
+ assert.match(source,/userData\.inspectBuilding=b/);
+ assert.match(source,/intersectObjects\(objects\.children\.filter\(o=>o\.userData\.inspectBuilding\),false\)/);
+});
+
 test('the large instanced map updates individual tiles and remains raycastable',()=>{
  const W=64,H=48,tiles=Array.from({length:W*H},()=>({h:2,tree:false})),seed=2026;
  const mat=color=>new THREE.MeshStandardMaterial({color});
