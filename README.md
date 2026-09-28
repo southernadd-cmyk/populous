@@ -2,6 +2,8 @@
 
 A real-time, browser-based god game about shaping land, growing followers, and building stone circles at sacred sites. It has no combat. [Play the published version](https://southernadd-cmyk.github.io/populous/).
 
+The world is **64×48 tiles**. The two villages begin on opposite sides of a broad central crossing. Five sacred sites form upper, lower and central routes, with wild followers scattered along the approaches. Settlements can grow to 72 people and 12 huts per tribe. Click the minimap to jump the camera between fronts, or use Home to return to your shaman.
+
 ## The gameplay loop
 
 Shape a **clear, level 2×2 plot** near one of your villages or sacred stones. Settlers can then plan a hut, gather wood, and build it. Families grow automatically as workers support the settlement. Level ground around a hut turns it into a **house** (four clear neighbours, two births), a **fort** (six neighbours, four births and a clear 2×2 footprint), then a **castle** (all eight neighbours, six births and a clear 3×3 footprint). A home claims its larger footprint as it grows, so other buildings and terrain edits cannot overlap it. Housing increases from 6 to 9, 13 and 18; blessed homes also produce more Faith and Devotion at each stage.
@@ -28,6 +30,8 @@ Unassigned followers now weigh three jobs: **build** an unfinished hut or stone 
 
 ## Controls and running locally
 
-Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its next land and birth milestones. Completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
+Choose **Move Shaman**, **Plan Hut**, **Build Stone**, or **Inspect**; spells include single-tile Raise and Lower Land. Hover a tile while shaping to see if it opens a stone foundation, a building plot, or grows a home, with the new footprint highlighted. Inspect a home to see its next land and birth milestones. Completed sites offer Grow / Worship / Guard controls. Drag to pan, right drag to rotate, scroll to zoom; click the minimap to pan across the world or use HOME to find your shaman. Pause or set 1×, 2×, or 3× speed.
 
-The game uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000` in a WebGL 2 browser. Players need no installation or account. Run the logic checks with `node --test tests/gameplay.test.cjs` when developing.
+Terrain elevations, decorative pebbles and trees render in batches. A single Raise or Lower updates the affected terrain instance, leaving the rest of the map in place. The minimap refreshes at a lower rate than the game simulation.
+
+The game uses bundled Three.js r180 under the MIT licence (`vendor/THREE-LICENSE.txt`). Run `python3 -m http.server 8000` in the repository root and open `http://localhost:8000` in a WebGL 2 browser. Players need no installation or account. Run the logic and rendering checks with `node --test tests/*.test.*` when developing.

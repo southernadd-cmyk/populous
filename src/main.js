@@ -1,31 +1,130 @@
 import * as THREE from '../vendor/three.module.js';
-const $=s=>document.querySelector(s), W=42,H=30, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const $=s=>document.querySelector(s), W=64,H=48, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const colors=[0x78c5ac,0xe48369,0xb9b7a5];
 const stage=$('#viewport'),scene=new THREE.Scene();scene.background=new THREE.Color(0x567e8b);scene.fog=new THREE.Fog(0x567e8b,28,58);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;stage.append(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-13,13,9,-9,.1,100),target=new THREE.Vector3(0,0,0);let angle=Math.PI/4,zoom=1,drag=null;
-scene.add(new THREE.HemisphereLight(0xd5eeff,0x4c5143,2.6));const sun=new THREE.DirectionalLight(0xffe5b0,2.9);sun.position.set(-13,23,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;sun.shadow.bias=-.0005;scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xd5eeff,0x4c5143,2.6));const sun=new THREE.DirectionalLight(0xffe5b0,2.9);sun.position.set(-13,23,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;sun.shadow.bias=-.0005;scene.add(sun,sun.target);
 const water=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x376d78,roughness:.42,metalness:.14}));water.rotation.x=-Math.PI/2;water.position.y=.03;scene.add(water);
-const terrain=new THREE.Group(),objects=new THREE.Group(),unitsGroup=new THREE.Group(),fxGroup=new THREE.Group(),hoverGroup=new THREE.Group();scene.add(terrain,objects,unitsGroup,fxGroup,hoverGroup);
+const terrain=new THREE.Group(),terrainMarks=new THREE.Group(),objects=new THREE.Group(),unitsGroup=new THREE.Group(),fxGroup=new THREE.Group(),hoverGroup=new THREE.Group();scene.add(terrain,terrainMarks,objects,unitsGroup,fxGroup,hoverGroup);
 const box=new THREE.BoxGeometry(1,1,1),sphere=new THREE.SphereGeometry(1,10,8),cone=new THREE.ConeGeometry(1,1,8),cyl=new THREE.CylinderGeometry(1,1,1,8),ringGeo=new THREE.TorusGeometry(1,.035,5,28);
 const roofGeo=new THREE.BufferGeometry(),roofPoints=[[-.5,.45,0],[.5,.45,0],[-.5,0,.5],[.5,0,.5],[-.5,0,-.5],[.5,0,-.5]];
 roofGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,2,3,0,3,1,0,1,5,0,5,4,0,4,2,1,3,5,2,4,5,2,5,3].flatMap(i=>roofPoints[i]),3));roofGeo.computeVertexNormals();
 const mat=(c,extra={})=>new THREE.MeshStandardMaterial({color:c,roughness:.92,...extra});const landMats=[null,mat(0x988665),mat(0x869a66),mat(0x73a26a),mat(0x7e9569),mat(0x999a81)],sideMats=[null,mat(0x605747),mat(0x5e6650),mat(0x52684b),mat(0x53624d),mat(0x666b5c)];const woodMat=mat(0x725746),roofMats=[mat(0x446a56),mat(0xa45043)],stoneMat=mat(0xc0ad83),wildMat=mat(0xc8c0a4),trunkMat=mat(0x654c38),leafMats=[mat(0x294e3c),mat(0x38664a),mat(0x54825a)],waterMat=mat(0x9cc4bc,{transparent:true,opacity:.35}),terraceGold=mat(0xd1bd7b),terraceRough=mat(0xb17b68),plotHighlight=mat(0x8fffe1,{emissive:0x216e58,emissiveIntensity:.6}),spiritBack=mat(0x172b30),sacredGround=mat(0xd6ba7b,{emissive:0x9a7140,emissiveIntensity:.45});
-const plasterMat=mat(0xdacba8),thatchMat=mat(0xb5a16d),timberMat=mat(0x583f31),masonryMat=mat(0x929e91),masonryLight=mat(0xd1c5a7),doorMat=mat(0x352c2b),windowMat=mat(0xf6d486,{emissive:0x9c6b24,emissiveIntensity:.45});
+const plasterMat=mat(0xdacba8),thatchMat=mat(0xb5a16d),timberMat=mat(0x583f31),masonryMat=mat(0x929e91),masonryLight=mat(0xd1c5a7),doorMat=mat(0x352c2b),windowMat=mat(0xf6d486,{emissive:0x9c6b24,emissiveIntensity:.45}),pebbleMat=mat(0xffffff);
 const DEVOTION_GOAL=1200,FESTIVAL_COST=70,STONE_COST=20;
 const BUILDING_TIERS=[null,{name:'Hut',flat:0,born:0,rooms:6},{name:'House',flat:4,born:2,rooms:9},{name:'Fort',flat:6,born:4,rooms:13},{name:'Castle',flat:8,born:6,rooms:18}];
-let nextFestivalAt=0,enemyPilgrimAt=15,aiStyle='stones',seed=2026,tiles=[],buildings=[],people=[],faith=[45,45],devotion=[0,0],lastSettlementAt=[-30,-30],shrines=[],mode='inspect',running=true,speed=1,elapsed=0,tick=0,aiClock=0,settlementClock=0,ended='',logs=[],guideStep=0,guideDone=[],toastTimer=0,fx=[],shaman,selectedSite=null;
-function newShrines(){return [13,21,29].map(x=>({x,z:15,owner:2,projectOwner:2,progress:0,buildX:null,buildZ:null,spirit:0,lock:0,policy:'grow'}))}
+const CAMPS=[{x:10,z:H/2},{x:W-11,z:H/2}];
+const SHRINE_SPOTS=[{x:18,z:H/2-6},{x:18,z:H/2+6},{x:W/2,z:H/2},{x:W-19,z:H/2-6},{x:W-19,z:H/2+6}];
+let nextFestivalAt=0,enemyPilgrimAt=15,aiStyle='stones',seed=2026,tiles=[],buildings=[],people=[],faith=[45,45],devotion=[0,0],lastSettlementAt=[-30,-30],shrines=[],mode='inspect',running=true,speed=1,elapsed=0,tick=0,aiClock=0,settlementClock=0,ended='',logs=[],guideStep=0,guideDone=[],toastTimer=0,fx=[],shaman,selectedSite=null,lastMini=-1000;
+let terrainLevels=[],terrainSlots=null,terrainHeights=null,pebbleSlots=null,pebbleInstances=null;
+const instanceTransform=new THREE.Object3D();
+function newShrines(){return SHRINE_SPOTS.map(({x,z})=>({x,z,owner:2,projectOwner:2,progress:0,buildX:null,buildZ:null,spirit:0,lock:0,policy:'grow'}))}
 const rand=(x,y,s=seed)=>{let n=Math.imul(x+11,374761393)+Math.imul(y+23,668265263)+Math.imul(s,2246822519);n=Math.imul(n^(n>>>13),1274126177);return((n^(n>>>16))>>>0)/4294967296};
 const at=(x,z)=>x>=0&&z>=0&&x<W&&z<H?tiles[z*W+x]:null;const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);const height=(x,z)=>at(Math.round(x),Math.round(z))?.h||0;const pos=(x,z)=>new THREE.Vector3(x-W/2+.5,height(x,z)*.48,z-H/2+.5);
 function mesh(geo,material,parent,x,y,z,sx=1,sy=1,sz=1){let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-function clear(group){while(group.children.length){let child=group.children[0];group.remove(child);if(child.geometry&&!([box,sphere,cone,cyl,ringGeo,roofGeo].includes(child.geometry)))child.geometry.dispose()}}
+function clear(group){while(group.children.length){let child=group.children[0];group.remove(child);if(child.isInstancedMesh)child.dispose();if(child.geometry&&!([box,sphere,cone,cyl,ringGeo,roofGeo].includes(child.geometry)))child.geometry.dispose()}}
 function log(s){logs.unshift(s);logs=logs.slice(0,5);$('#events').innerHTML=logs.map(v=>`<p>${v}</p>`).join('');toast(s)}
 function toast(s){let e=$('#toast');e.textContent=s;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),2600)}
-function makeWorld(){clear(unitsGroup);clear(fxGroup);fx=[];seed=Math.floor(Math.random()*900000)+1000;aiStyle=rand(41,67)>.5?'villages':'stones';tiles=[];buildings=[];people=[];faith=[45,45];devotion=[0,0];lastSettlementAt=[-30,-30];nextFestivalAt=0;enemyPilgrimAt=aiStyle==='villages'?40:15;shrines=newShrines();elapsed=0;tick=0;aiClock=0;settlementClock=0;ended='';running=true;speed=1;guideStep=0;guideDone=[];logs=[];mode='inspect';selectedSite=null;$('#sitePanel').hidden=true;$('#result').hidden=true;$('#pause').textContent='PAUSE';$('#speed').textContent='1× SPEED';for(let z=0;z<H;z++)for(let x=0;x<W;x++){let island=Math.min(x,W-1-x,z,H-1-z),noise=rand(Math.floor(x/3),Math.floor(z/3))*.7+rand(x,z)*.3;let h=island<2||noise<.18?0:clamp(Math.floor(noise*4.5),1,4);tiles.push({h,tree:h>0&&rand(x,z,seed+1)>.76,wood:0,building:null})}for(let camp of [{x:7,z:15},{x:34,z:15}])for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){let t=at(camp.x+dx,camp.z+dz);if(t){t.h=2;t.tree=false}}for(let z=14;z<=16;z++)for(let x=10;x<=32;x++){let t=at(x,z);if(t)t.h=2}for(let shrine of shrines)for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz){at(shrine.x,shrine.z).tree=false;continue}let x=shrine.x+dx,z=shrine.z+dz,t=at(x,z);if(t){t.h=(dx+dz+shrine.x)%3===0?2:(dx*dz>0?3:1);t.tree=false}}for(let x of [7,8,34,35])for(let z of [18,19]){let plot=at(x,z);plot.h=2;plot.tree=false}addBuilding(7,15,0,'hearth',true);addBuilding(34,15,1,'hearth',true);addBuilding(5,14,0,'hut',true);addBuilding(36,14,1,'hut',true);for(let [x,z] of [[10,12],[11,17],[31,12],[30,17]]){let t=at(x,z);t.h=2;t.tree=true}for(let [x,z,owner] of [[9,15,0],[32,15,1]]){at(x,z).tree=false;addBuilding(x,z,owner,'hut')}for(let i=0;i<5;i++){addPerson(0,6+rand(i,0),14+rand(i,1),'brave');addPerson(1,35+rand(i,2),15+rand(i,3),'brave')}for(let i=0;i<11;i++){let x=13+rand(i,5)*16,z=12+rand(i,6)*6;if(!validLand(Math.round(x),Math.round(z)))z=15;addPerson(2,x,z,'wild')};shaman=addPerson(0,7,16,'shaman');addPerson(1,34,14,'shaman');renderTerrain();renderObjects();updateUI();updateGuide();log('Level land around growing huts to raise houses, forts and castles. Sacred runes can also become stone circles.');log(aiStyle==='villages'?'Ember focuses on growing settlements.':'Ember pilgrims are seeking sacred sites.');cameraTarget(stage.clientWidth<760?10:21,15)}
+function makeWorld(){
+ clear(unitsGroup);clear(fxGroup);fx=[];seed=Math.floor(Math.random()*900000)+1000;aiStyle=rand(41,67)>.5?'villages':'stones';
+ tiles=[];buildings=[];people=[];faith=[45,45];devotion=[0,0];lastSettlementAt=[-30,-30];nextFestivalAt=0;enemyPilgrimAt=aiStyle==='villages'?40:15;shrines=newShrines();
+ elapsed=0;tick=0;aiClock=0;settlementClock=0;ended='';running=true;speed=1;guideStep=0;guideDone=[];logs=[];mode='inspect';selectedSite=null;lastMini=-1000;
+ $('#sitePanel').hidden=true;$('#result').hidden=true;$('#pause').textContent='PAUSE';$('#speed').textContent='1× SPEED';
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){
+  let mirror=Math.min(x,W-1-x),island=Math.min(x,W-1-x,z,H-1-z);
+  let noise=rand(Math.floor(mirror/3),Math.floor(z/3))*.7+rand(mirror,z)*.3;
+  let h=island<2||noise<.16?0:clamp(Math.floor(noise*4.5),1,4);
+  tiles.push({h,tree:h>0&&rand(mirror,z,seed+1)>.76,wood:0,building:null})
+ }
+ for(let camp of CAMPS)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){let t=at(camp.x+dx,camp.z+dz);t.h=2;t.tree=false}
+ for(let z=H/2-2;z<=H/2+2;z++)for(let x=CAMPS[0].x+3;x<=CAMPS[1].x-3;x++){let t=at(x,z);t.h=2;t.tree=false}
+ for(let x of [18,W-19])for(let z=H/2-6;z<=H/2+6;z++)for(let dx=-1;dx<=1;dx++){let t=at(x+dx,z);t.h=2;t.tree=false}
+ for(let shrine of shrines)for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+  let t=at(shrine.x+dx,shrine.z+dz);t.tree=false;
+  if(dx||dz)t.h=dx===0&&dz===-1?2:(dx+dz+shrine.z)%3===0?2:(dx*dz>0?3:1);
+  else t.h=2
+ }
+ for(let camp of CAMPS)for(let x of [camp.x,camp.x+1])for(let z of [camp.z+3,camp.z+4]){let t=at(x,z);t.h=2;t.tree=false}
+ for(let [owner,camp] of CAMPS.entries()){
+  addBuilding(camp.x,camp.z,owner,'hearth',true);
+  addBuilding(camp.x+(owner?2:-2),camp.z-1,owner,'hut',true);
+  addBuilding(camp.x+(owner?-2:2),camp.z,owner,'hut');
+  for(let [dx,dz] of [[5,-3],[6,3]]){let t=at(camp.x+(owner?-dx:dx),camp.z+dz);t.h=2;t.tree=true}
+  for(let i=0;i<5;i++)addPerson(owner,camp.x+(owner?1:-1)+rand(i,owner),camp.z-1+rand(i,owner+2)*2,'brave')
+ }
+ let wildClusters=[[13,22],[18,21],[18,29],[30,19],[34,29],[W-19,21],[W-19,29],[W-14,22]];
+ for(let [group,centre] of wildClusters.entries())for(let i=0;i<3;i++){
+  let x=centre[0]+(rand(group,i,seed+5)-.5)*3,z=centre[1]+(rand(group,i,seed+6)-.5)*3;
+  if(!validLand(Math.round(x),Math.round(z))){x=centre[0];z=centre[1]}
+  addPerson(2,x,z,'wild')
+ }
+ shaman=addPerson(0,CAMPS[0].x,CAMPS[0].z+1,'shaman');
+ addPerson(1,CAMPS[1].x,CAMPS[1].z-1,'shaman');
+ renderTerrain();renderObjects();updateUI();updateGuide();
+ log('Level land around growing huts to raise houses, forts and castles. Five sacred sites stretch across the larger world.');
+ log(aiStyle==='villages'?'Ember focuses on growing settlements.':'Ember pilgrims are seeking sacred sites.');
+ cameraTarget(CAMPS[0].x+(stage.clientWidth<760?0:5),CAMPS[0].z)
+}
 function addBuilding(x,z,owner,type,complete=false){let t=at(x,z);if(!t||t.h<1||t.building)return null;let b={x,z,owner,type,progress:complete?1:0,wood:complete?3:0,blessed:false,policy:'grow',level:1,born:0,pop:0,spawn:0,footprint:[{x,z}]};buildings.push(b);t.building=b;return b}
 function addPerson(owner,x,z,type){let p={owner,x,z,type,goal:null,work:0,carry:0,idle:0,role:'worker',worshipSite:null,guardSite:null,workSite:null,tendSite:null,supportSite:null,intent:null,intentUntil:0,tendCooldown:0,route:null,routeGoal:null,job:type==='wild'?'ROAMING':'IDLE'};people.push(p);return p}
-function renderTerrain(){clear(terrain);for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z);if(!t.h)continue;let p=pos(x,z),y=t.h*.48,material=landMats[t.h];mesh(box,sideMats[t.h],terrain,p.x,y/2-.015,p.z,.98,y,.98);mesh(box,material,terrain,p.x,y-.035,p.z,.99,.09,.99);if(rand(x,z,seed+71)>.65){let pebble=mesh(sphere,rand(x,z,seed+74)>.5?stoneMat:landMats[Math.min(5,t.h+1)],terrain,p.x+(rand(x,z,seed+75)-.5)*.6,y+.012,p.z+(rand(x,z,seed+76)-.5)*.6,.05,.03,.08);pebble.castShadow=false}let sacred=shrines.find(site=>Math.max(Math.abs(site.x-x),Math.abs(site.z-z))===1);if(sacred){let marker=mesh(ringGeo,t.h===height(sacred.x,sacred.z)?terraceGold:terraceScore(sacred)>=4?stoneMat:terraceRough,terrain,p.x,y+.04,p.z,.31,.31,.31);marker.rotation.x=Math.PI/2;marker.castShadow=false}}}
+function placeTerrainInstance(entry,slot,x,z,h){
+ let px=x-W/2+.5,pz=z-H/2+.5,y=h*.48;
+ instanceTransform.position.set(px,y/2-.015,pz);instanceTransform.scale.set(.98,y,.98);instanceTransform.updateMatrix();entry.side.setMatrixAt(slot,instanceTransform.matrix);
+ instanceTransform.position.set(px,y-.035,pz);instanceTransform.scale.set(.99,.09,.99);instanceTransform.updateMatrix();entry.top.setMatrixAt(slot,instanceTransform.matrix)
+}
+function placePebble(x,z){
+ let index=pebbleSlots[z*W+x];if(index<0)return;
+ let t=at(x,z),v=rand(x,z,seed+74);
+ instanceTransform.position.set(x-W/2+.5+(rand(x,z,seed+75)-.5)*.6,t.h*.48+.012,z-H/2+.5+(rand(x,z,seed+76)-.5)*.6);
+ instanceTransform.scale.set(t.h?.05:0,t.h?.03:0,t.h?.08:0);instanceTransform.updateMatrix();
+ pebbleInstances.setMatrixAt(index,instanceTransform.matrix);
+ pebbleInstances.setColorAt(index,(v>.5?stoneMat:landMats[Math.min(5,t.h+1)]).color)
+}
+function renderTerrainMarks(){
+ clear(terrainMarks);
+ for(let site of shrines)for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+  if(!dx&&!dz)continue;
+  let x=site.x+dx,z=site.z+dz,t=at(x,z);if(!t?.h)continue;
+  let p=pos(x,z),marker=mesh(ringGeo,t.h===height(site.x,site.z)?terraceGold:terraceScore(site)>=4?stoneMat:terraceRough,terrainMarks,p.x,p.y+.04,p.z,.31,.31,.31);
+  marker.rotation.x=Math.PI/2;marker.castShadow=false
+ }
+}
+function renderTerrain(){
+ clear(terrain);terrainLevels=[null];terrainSlots=new Int32Array(W*H).fill(-1);terrainHeights=new Int8Array(W*H);pebbleSlots=new Int32Array(W*H).fill(-1);
+ for(let h=1;h<=5;h++){
+  let side=new THREE.InstancedMesh(box,sideMats[h],W*H),top=new THREE.InstancedMesh(box,landMats[h],W*H);
+  side.count=0;top.count=0;side.castShadow=true;side.receiveShadow=true;top.castShadow=true;top.receiveShadow=true;
+  side.frustumCulled=false;top.frustumCulled=false;
+  let bounds=new THREE.Sphere(new THREE.Vector3(0,2,0),Math.hypot(W/2,H/2)+10);side.boundingSphere=bounds;top.boundingSphere=bounds;
+  terrain.add(side,top);terrainLevels.push({side,top,slots:[]})
+ }
+ let pebbleCount=0;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(rand(x,z,seed+71)>.65)pebbleSlots[z*W+x]=pebbleCount++;
+ pebbleInstances=new THREE.InstancedMesh(sphere,pebbleMat,pebbleCount);pebbleInstances.castShadow=false;pebbleInstances.receiveShadow=true;pebbleInstances.frustumCulled=false;terrain.add(pebbleInstances);
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){
+  let id=z*W+x,h=at(x,z).h;terrainHeights[id]=h;
+  if(h){let entry=terrainLevels[h],slot=entry.slots.length;entry.slots.push(id);terrainSlots[id]=slot;entry.side.count=slot+1;entry.top.count=slot+1;placeTerrainInstance(entry,slot,x,z,h)}
+  if(pebbleSlots[id]>=0)placePebble(x,z)
+ }
+ for(let entry of terrainLevels.slice(1)){entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true}
+ pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true;
+ renderTerrainMarks()
+}
+function refreshTerrainAt(x,z){
+ if(!terrainLevels.length)return;
+ let id=z*W+x,old=terrainHeights[id],next=at(x,z).h;
+ if(old!==next){
+  if(old){let entry=terrainLevels[old],slot=terrainSlots[id],last=entry.slots.pop();
+   if(last!==id){entry.slots[slot]=last;terrainSlots[last]=slot;placeTerrainInstance(entry,slot,last%W,Math.floor(last/W),old)}
+   entry.side.count=entry.top.count=entry.slots.length;entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true
+  }
+  terrainSlots[id]=-1;
+  if(next){let entry=terrainLevels[next],slot=entry.slots.length;entry.slots.push(id);terrainSlots[id]=slot;entry.side.count=entry.top.count=slot+1;placeTerrainInstance(entry,slot,x,z,next);entry.side.instanceMatrix.needsUpdate=true;entry.top.instanceMatrix.needsUpdate=true}
+  terrainHeights[id]=next
+ }
+ if(pebbleSlots[id]>=0){placePebble(x,z);pebbleInstances.instanceMatrix.needsUpdate=true;pebbleInstances.instanceColor.needsUpdate=true}
+ renderTerrainMarks()
+}
 function renderStone(site){
  let mark=pos(site.x,site.z),building=site.projectOwner<2,built=site.owner<2,color=built?gem[site.owner]:building?gem[site.projectOwner]:sacredGround;
  let rune=mesh(ringGeo,color,objects,mark.x,mark.y+.07,mark.z,.78,.78,.78);rune.rotation.x=Math.PI/2;rune.castShadow=false;
@@ -75,7 +174,24 @@ function renderBuilding(b){
  }
  if(b.blessed){let y=[0,1.34,1.45,2.03,2.67][b.level];add(sphere,gem[b.owner],0,y,0,.12,.12,.12);let halo=add(ringGeo,gem[b.owner],0,.14,0,b.level>2?.72:.48,b.level>2?.72:.48,b.level>2?.72:.48);halo.rotation.x=Math.PI/2;halo.castShadow=false}
 }
-function renderObjects(){clear(objects);for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z);if(!t.tree||!t.h)continue;let p=pos(x,z),v=rand(x,z,seed+2);mesh(cyl,trunkMat,objects,p.x,p.y+.24,p.z,.09,.5,.09);mesh(cone,leafMats[Math.floor(v*3)],objects,p.x,p.y+.66,p.z,.37,.8,.37);mesh(cone,leafMats[Math.floor(v*3)],objects,p.x,p.y+.93,p.z,.26,.62,.26)}for(let shrine of shrines)renderStone(shrine);for(let b of buildings)renderBuilding(b)}
+function renderObjects(){
+ clear(objects);
+ let counts=[0,0,0];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z).tree&&at(x,z).h)counts[Math.floor(rand(x,z,seed+2)*3)]++;
+ let trunks=new THREE.InstancedMesh(cyl,trunkMat,counts.reduce((a,b)=>a+b,0));
+ let foliage=counts.map((count,i)=>new THREE.InstancedMesh(cone,leafMats[i],count*2));
+ objects.add(trunks,...foliage);
+ let trunkSlot=0,leafSlots=[0,0,0];
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){
+  let t=at(x,z);if(!t.tree||!t.h)continue;
+  let p=pos(x,z),color=Math.floor(rand(x,z,seed+2)*3),leaves=foliage[color];
+  instanceTransform.position.set(p.x,p.y+.24,p.z);instanceTransform.scale.set(.09,.5,.09);instanceTransform.updateMatrix();trunks.setMatrixAt(trunkSlot++,instanceTransform.matrix);
+  for(let [y,sx,sy] of [[.66,.37,.8],[.93,.26,.62]]){instanceTransform.position.set(p.x,p.y+y,p.z);instanceTransform.scale.set(sx,sy,sx);instanceTransform.updateMatrix();leaves.setMatrixAt(leafSlots[color]++,instanceTransform.matrix)}
+ }
+ trunks.instanceMatrix.needsUpdate=true;trunks.castShadow=true;trunks.receiveShadow=true;
+ for(let leaves of foliage){leaves.instanceMatrix.needsUpdate=true;leaves.castShadow=true;leaves.receiveShadow=true}
+ for(let shrine of shrines)renderStone(shrine);
+ for(let b of buildings)renderBuilding(b)
+}
 function updateShrineVisuals(){for(let site of shrines){if(!site.bar)continue;let level=site.owner===2?site.progress:site.spirit/100,width=Math.max(.01,1.23*clamp(level,0,1));site.bar.material=gem[site.owner===2?site.projectOwner:site.owner];site.bar.scale.x=width;site.bar.position.x=site.barX-(1.23-width)/2;site.bar.visible=level>.001}}
 // Each follower owns a small character rig. Geometry and materials are shared across rigs.
 const hearthGlow=[mat(0xafffeb,{emissive:0x2f9d81,emissiveIntensity:1.5}),mat(0xffa28b,{emissive:0x9d2d23,emissiveIntensity:1.5})];
@@ -147,7 +263,7 @@ function hutLevel(hut){if(hut.type!=='hut'||hut.progress<1)return 1;let flat=fla
 function growBuilding(hut,tier){let footprint=buildingFootprint(hut,tier);if(!footprint)return false;for(let tile of footprint)at(tile.x,tile.z).building=hut;hut.footprint=footprint;hut.level=tier;return true}
 function upgradedHutFromTile(x,z,next,owner=0){let tile=at(x,z),old=tile.h,before=buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1&&dist(b,{x,z})<1.5).map(b=>({b,level:hutLevel(b)}));tile.h=next;let upgrade=before.find(({b,level})=>hutLevel(b)>Math.max(level,b.level));let tier=upgrade&&hutLevel(upgrade.b),footprint=upgrade&&buildingFootprint(upgrade.b,tier);tile.h=old;return upgrade?{hut:upgrade.b,level:tier,footprint}:null}
 function newPlotFromTile(x,z,next,owner=0){let tile=at(x,z),old=tile.h,was=[];for(let dz=-1;dz<=0;dz++)for(let dx=-1;dx<=0;dx++)was.push(plotAt(x+dx,z+dz,owner));tile.h=next;let plot=null,i=0;for(let dz=-1;dz<=0;dz++)for(let dx=-1;dx<=0;dx++,i++)if(!was[i]&&plotAt(x+dx,z+dz,owner))plot={x:x+dx,z:z+dz};tile.h=old;return plot}
-function terrainBrush(x,z,dir,apply=false,owner=0){let t=at(x,z),terrace=shrines.find(site=>site.owner===owner&&Math.max(Math.abs(site.x-x),Math.abs(site.z-z))===1)||null;if(!t||t.building||shrines.some(site=>site.x===x&&site.z===z||stoneFootprint(site,x,z)))return {changed:0,terrace};if(terrace){let target=height(terrace.x,terrace.z);if(dir>0&&t.h>=target||dir<0&&t.h<=target)return {changed:0,terrace}}let next=clamp(t.h+dir,0,5);if(next===t.h)return {changed:0,terrace};let newPlot=newPlotFromTile(x,z,next,owner),newStonePad=newStonePadFromTile(x,z,next),upgrade=upgradedHutFromTile(x,z,next,owner);if(apply){t.h=next;t.sculptedBy=owner;if(!next)t.tree=false;if(upgrade)growBuilding(upgrade.hut,upgrade.level);if(newPlot){settlementClock=4;if(owner===0)guideAdvance(1)}}return {changed:1,terrace,newPlot,newStonePad,upgrade}}
+function terrainBrush(x,z,dir,apply=false,owner=0){let t=at(x,z),terrace=shrines.find(site=>site.owner===owner&&Math.max(Math.abs(site.x-x),Math.abs(site.z-z))===1)||null;if(!t||t.building||shrines.some(site=>site.x===x&&site.z===z||stoneFootprint(site,x,z)))return {changed:0,terrace};if(terrace){let target=height(terrace.x,terrace.z);if(dir>0&&t.h>=target||dir<0&&t.h<=target)return {changed:0,terrace}}let next=clamp(t.h+dir,0,5);if(next===t.h)return {changed:0,terrace};let newPlot=newPlotFromTile(x,z,next,owner),newStonePad=newStonePadFromTile(x,z,next),upgrade=upgradedHutFromTile(x,z,next,owner);if(apply){t.h=next;t.sculptedBy=owner;if(!next)t.tree=false;if(terrainLevels.length)refreshTerrainAt(x,z);if(upgrade)growBuilding(upgrade.hut,upgrade.level);if(newPlot){settlementClock=4;if(owner===0)guideAdvance(1)}}return {changed:1,terrace,newPlot,newStonePad,upgrade}}
 function bestTerraceBrush(site){let best=null;for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;let x=site.x+dx,z=site.z+dz;for(let dir of [-1,1]){let plan=terrainBrush(x,z,dir);if(!best||plan.changed>best.changed)best={x,z,dir,changed:plan.changed}}}return best?.changed?best:null}
 function approachSite(p,site){let spots=[{x:site.x+.8,z:site.z},{x:site.x-.8,z:site.z},{x:site.x,z:site.z+.8},{x:site.x,z:site.z-.8}].filter(q=>validLand(Math.round(q.x),Math.round(q.z)));return nearest(spots,p)||{x:site.x,z:site.z}}
 function assignWorshippers(owner,target,count=2){let capacity=shrines.includes(target)?4:2,current=people.filter(p=>p.owner===owner&&p.worshipSite===target).length,workers=people.filter(p=>p.owner===owner&&p.type==='brave'&&p.role==='worker'&&!p.carry).sort((a,b)=>dist(a,target)-dist(b,target));let chosen=workers.slice(0,Math.max(0,Math.min(count,capacity-current,workers.length-3)));for(let p of chosen){p.role='worshipper';p.worshipSite=target;p.workSite=null;p.tendSite=null;p.supportSite=null;p.intent=null;p.goal=approachSite(p,target);p.job='GOING TO WORSHIP'}return chosen.length}
@@ -191,9 +307,9 @@ function shrineFlow(site){if(site.owner>1)return 0;let worship=people.filter(p=>
 function income(owner){let followers=people.filter(p=>p.owner===owner).length,blessed=buildings.filter(b=>b.owner===owner&&b.blessed&&b.progress===1),hutWorship=people.filter(p=>p.owner===owner&&p.role==='worshipper'&&buildings.includes(p.worshipSite)&&validWorshipSite(p.worshipSite,owner)&&dist(p,p.worshipSite)<1.5).reduce((sum,p)=>sum+.65*(.65+siteBelief(p.worshipSite)*.009),0);return .2+followers*.045+blessed.reduce((sum,b)=>sum+.3+(b.level-1)*.1,0)+hutWorship+shrines.filter(s=>s.owner===owner).reduce((sum,s)=>sum+shrineFlow(s),0)}
 function siteDevotion(site){if(site.owner>1||!validWorshipSite(site,site.owner))return 0;let worship=people.filter(p=>p.owner===site.owner&&p.role==='worshipper'&&p.worshipSite===site&&dist(p,site)<1.5).length,belief=.55+siteBelief(site)*.008;if(shrines.includes(site))return (.3+Math.min(4,terraceScore(site))*.15+worship*.95)*belief;return (.8+worship*.58)*belief*(siteNeeds(site,site.owner).healthy?1:.65)*(1+(site.level-1)*.32)}
 function devotionRate(owner){return [...shrines,...buildings].filter(s=>s.owner===owner).reduce((total,s)=>total+siteDevotion(s),0)}
-function housingCapacity(owner){return Math.min(60,7+buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1).reduce((rooms,b)=>rooms+BUILDING_TIERS[b.level].rooms,0))}
+function housingCapacity(owner){return Math.min(72,7+buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1).reduce((rooms,b)=>rooms+BUILDING_TIERS[b.level].rooms,0))}
 function availablePlots(owner){let plots=[];for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++)if(plotAt(x,z,owner)){let sculpted=!![at(x,z),at(x+1,z),at(x,z+1),at(x+1,z+1)].some(t=>t.sculptedBy===owner),nearWorkers=people.filter(p=>p.owner===owner&&p.type==='brave'&&p.role==='worker'&&dist(p,{x,z})<6).length;plots.push({x,z,sculpted,nearWorkers})}return plots.sort((a,b)=>Number(b.sculpted)-Number(a.sculpted)||b.nearWorkers-a.nearWorkers||a.z-b.z||a.x-b.x)}
-function planSettlement(owner){let huts=buildings.filter(b=>b.owner===owner&&b.type==='hut'),projects=huts.filter(b=>b.progress<1).length;if(projects>=2||huts.length>=10)return;let population=people.filter(q=>q.owner===owner).length,hearth=buildings.find(b=>b.owner===owner&&b.type==='hearth'),plot=availablePlots(owner).find(p=>p.sculpted||population>=housingCapacity(owner)-3&&elapsed-lastSettlementAt[owner]>=12&&(huts.length<3&&dist(p,hearth)<5.5||[...shrines,...buildings].some(s=>validWorshipSite(s,owner)&&s.policy==='grow'&&dist(p,s)<4.5)));if(!plot)return;addBuilding(plot.x,plot.z,owner,'hut');lastSettlementAt[owner]=elapsed;for(let dz=0;dz<=1;dz++)for(let dx=0;dx<=1;dx++)at(plot.x+dx,plot.z+dz).sculptedBy=null;renderObjects();if(owner===0){ping(plot.x,plot.z,gem[0]);log(plot.sculpted?'The new flat ground attracted settlers. Braves are building a hut.':'Your growing tribe has started a hut on flat ground.')}else log('Ember settlers found flat ground and began a hut.')}
+function planSettlement(owner){let huts=buildings.filter(b=>b.owner===owner&&b.type==='hut'),projects=huts.filter(b=>b.progress<1).length;if(projects>=2||huts.length>=12)return;let population=people.filter(q=>q.owner===owner).length,hearth=buildings.find(b=>b.owner===owner&&b.type==='hearth'),plot=availablePlots(owner).find(p=>p.sculpted||population>=housingCapacity(owner)-3&&elapsed-lastSettlementAt[owner]>=12&&(huts.length<3&&dist(p,hearth)<5.5||[...shrines,...buildings].some(s=>validWorshipSite(s,owner)&&s.policy==='grow'&&dist(p,s)<4.5)));if(!plot)return;addBuilding(plot.x,plot.z,owner,'hut');lastSettlementAt[owner]=elapsed;for(let dz=0;dz<=1;dz++)for(let dx=0;dx<=1;dx++)at(plot.x+dx,plot.z+dz).sculptedBy=null;renderObjects();if(owner===0){ping(plot.x,plot.z,gem[0]);log(plot.sculpted?'The new flat ground attracted settlers. Braves are building a hut.':'Your growing tribe has started a hut on flat ground.')}else log('Ember settlers found flat ground and began a hut.')}
 function startStoneProject(site,x,z,owner){if(!canBuildStone(site,x,z)||faith[owner]<STONE_COST)return false;faith[owner]-=STONE_COST;site.projectOwner=owner;site.buildX=x;site.buildZ=z;site.progress=0;renderObjects();ping(site.x,site.z,gem[owner]);log(owner===0?'Stone circle planned. Nearby followers are building it.':'Ember started a stone circle.');return true}
 function consecrateStone(site,owner,startingSpirit=55){if(site.progress<1)return false;for(let p of people.filter(p=>p.worshipSite===site||p.guardSite===site)){p.role='worker';p.worshipSite=null;p.guardSite=null;p.goal=null}site.owner=owner;site.projectOwner=2;site.policy='grow';site.spirit=startingSpirit;site.belief=35;site.lock=0;site.warned=false;site.festivalUntil=0;renderObjects();log(owner===0?'Your stone circle is consecrated. Choose Grow, Worship or Guard.':'Ember consecrated a stone circle.');if(owner===0)guideAdvance(2);else{enemyPilgrimAt=elapsed+(aiStyle==='villages'?48:60);site.policy='worship';syncSitePolicies(1)}return true}
 function updateStoneSpirit(site,dt){if(site.owner===2)return;let shieldExpired=site.lock>0&&site.lock<=dt;site.lock=Math.max(0,site.lock-dt);if(shieldExpired)renderObjects();let visiting=people.filter(p=>p.type==='shaman'&&dist(p,site)<1.55),present=[visiting.some(p=>p.owner===0),visiting.some(p=>p.owner===1)],owner=site.owner,rival=1-owner,flow=shrineFlow(site),keeper=people.some(p=>p.owner===owner&&p.guardSite===site&&dist(p,site)<1.5),recovery=.7+flow*1.25+(present[owner]?7:0)+(site.policy==='guard'&&keeper?5:0),pressure=site.lock>0||!present[rival]?0:7+Math.min(income(rival),8)*.7;site.spirit=clamp(site.spirit+(recovery-pressure)*dt,0,100);if(site.spirit<=0&&present[rival]&&site.lock<=0)consecrateStone(site,rival)}
@@ -208,7 +324,7 @@ function nextMoves(){
  let ready=[...shrines,...buildings].find(site=>festivalReady(site)&&faith[0]>=FESTIVAL_COST);
  if(ready)choices.push({title:'HOLD A FESTIVAL',body:'Hold one great celebration for 70 faith. Your tribe needs 60 seconds before the next.',label:'CELEBRATE',run:()=>festival(ready)});
  let population=people.filter(p=>p.owner===0).length,home=buildings.find(b=>b.owner===0&&b.type==='hearth');
- if(housingCapacity(0)<60&&population>=housingCapacity(0)-3&&!buildings.some(b=>b.owner===0&&b.type==='hut'&&b.progress<1))choices.push({title:'MAKE ROOM TO GROW',body:'Level ground around a home grows it into a house, fort or castle; a clear 2×2 plot attracts another hut.',label:'SHOW VILLAGE',run:()=>{mode='raise';cameraTarget(home.x,home.z);toast('Hover over land to preview the next building stage or a new plot.');updateUI()}});
+ if(housingCapacity(0)<72&&population>=housingCapacity(0)-3&&!buildings.some(b=>b.owner===0&&b.type==='hut'&&b.progress<1))choices.push({title:'MAKE ROOM TO GROW',body:'Level ground around a home grows it into a house, fort or castle; a clear 2×2 plot attracts another hut.',label:'SHOW VILLAGE',run:()=>{mode='raise';cameraTarget(home.x,home.z);toast('Hover over land to preview the next building stage or a new plot.');updateUI()}});
  let hut=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed);
  if(hut&&faith[0]>=30)choices.push({title:'GROW A BLESSED VILLAGE',body:'Bless a completed hut to earn devotion locally, then choose its Grow or Worship policy.',label:'BLESS HUT',run:()=>{cameraTarget(hut.x,hut.z);if(dist(shaman,hut)>5){shaman.goal={x:hut.x,z:hut.z};mode='bless';toast('Shaman heading to the hut. Select Bless again when she arrives.')}else{mode='bless';action(hut.x,hut.z)}updateUI()}});
  let grow=[...shrines,...buildings].find(site=>validWorshipSite(site,0)&&site.policy==='grow'&&people.filter(p=>p.owner===0&&p.role==='worker').length>=5);
@@ -245,7 +361,7 @@ function ai(dt){
   if(p.type==='brave'&&p.role==='worker'&&p.job.startsWith('SUPPORTING')&&p.goal&&elapsed>=p.intentUntil)p.goal=null;
   if(p.type==='brave'&&p.tendSite){if(p.tendSite.owner!==own||siteBelief(p.tendSite)>=90){p.tendSite=null;p.intent=null;p.goal=null;p.work=0}else{p.job='TENDING SHRINE';if(dist(p,p.tendSite)>1.35){if(!p.goal)p.goal={x:p.tendSite.x+(p.x>p.tendSite.x?.8:-.8),z:p.tendSite.z};move(p,p.goal,dt,1.15)}else{p.goal=null;p.work+=dt;if(p.work>=3){p.tendSite.belief=clamp(siteBelief(p.tendSite)+4,10,100);p.tendSite=null;p.intent=null;p.tendCooldown=elapsed+22;p.work=0}}continue}}
   if(p.goal){move(p,p.goal,dt,p.type==='shaman'?1.5:1.3);continue}
-  if(p.type==='shaman'){if(own===1){let sacred=shrines.filter(s=>s.owner===1),aggressive=aiStyle==='stones'||!sacred.length||devotion[0]>devotion[1]+180,target=aggressive&&elapsed>=enemyPilgrimAt?nearest(shrines.filter(s=>s.owner===0&&s.lock<=0||s.owner===2&&s.projectOwner!==1),p):null;if(target){p.job='PILGRIMAGE';if(dist(p,target)>(target.owner===2&&target.projectOwner===2?2.4:1.2))p.goal={x:target.x,z:target.z};else if(target.owner===2&&target.projectOwner===2){let plot=stoneCandidate(target);if(plot&&faith[1]>=STONE_COST)startStoneProject(target,plot.x,plot.z,1);else if(!plot&&faith[1]>=4&&elapsed>=(p.nextStoneEdit||0)){let edit=stonePreparation(target);if(edit&&terrainBrush(edit.x,edit.z,edit.dir,true,1).changed){faith[1]-=4;p.nextStoneEdit=elapsed+2;renderTerrain();renderObjects();log('Ember shaped sacred ground for a stone circle.')}}}}else if(aiStyle==='villages'&&sacred.length){let home=nearest(sacred,p);p.job='GUARDING SACRED GROUND';if(dist(p,home)>1.25)p.goal={x:home.x,z:home.z}}else{let wild=nearest(people.filter(q=>q.owner===2),p);if(wild&&faith[1]>=20&&dist(wild,p)<4&&people.filter(q=>q.owner===1).length<housingCapacity(1)){wild.owner=1;wild.type='brave';wild.goal=null;faith[1]-=20;log('Ember welcomed a wildman to its tribe.')}}}continue}
+  if(p.type==='shaman'){if(own===1){let sacred=shrines.filter(s=>s.owner===1),aggressive=aiStyle==='stones'||!sacred.length||devotion[0]>devotion[1]+180,target=aggressive&&elapsed>=enemyPilgrimAt?nearest(shrines.filter(s=>s.owner===0&&s.lock<=0||s.owner===2&&s.projectOwner!==1),p):null;if(target){p.job='PILGRIMAGE';if(dist(p,target)>(target.owner===2&&target.projectOwner===2?2.4:1.2))p.goal={x:target.x,z:target.z};else if(target.owner===2&&target.projectOwner===2){let plot=stoneCandidate(target);if(plot&&faith[1]>=STONE_COST)startStoneProject(target,plot.x,plot.z,1);else if(!plot&&faith[1]>=4&&elapsed>=(p.nextStoneEdit||0)){let edit=stonePreparation(target);if(edit&&terrainBrush(edit.x,edit.z,edit.dir,true,1).changed){faith[1]-=4;p.nextStoneEdit=elapsed+2;renderObjects();log('Ember shaped sacred ground for a stone circle.')}}}}else if(aiStyle==='villages'&&sacred.length){let home=nearest(sacred,p);p.job='GUARDING SACRED GROUND';if(dist(p,home)>1.25)p.goal={x:home.x,z:home.z}}else{let wild=nearest(people.filter(q=>q.owner===2),p);if(wild&&faith[1]>=20&&dist(wild,p)<4&&people.filter(q=>q.owner===1).length<housingCapacity(1)){wild.owner=1;wild.type='brave';wild.goal=null;faith[1]-=20;log('Ember welcomed a wildman to its tribe.')}}}continue}
   if(p.carry&&!buildings.some(b=>activeProject(b,own))){p.carry=0;renderObjects()}
   let keep=p.intent&&elapsed<p.intentUntil&&validWorkerIntent(p.intent,own),intent=keep?p.intent:chooseWorkerIntent(p);
   p.intent=intent;if(!keep)p.intentUntil=elapsed+3;p.workSite=intent?.kind==='build'?intent.site:null;p.supportSite=intent?.kind==='support'?intent.site:null;
@@ -260,7 +376,7 @@ function ai(dt){
  }
  for(let b of buildings){if(b.progress<1)continue;let nearby=people.filter(p=>p.owner===b.owner&&p.type==='brave'&&p.role==='worker'&&dist(p,b)<3).length;b.pop=nearby;if(nearby)b.spawn=Math.min(1,b.spawn+dt*(b.type==='hut'?.105:.025)*(1+Math.min(nearby,3)*.23));if(b.spawn>=1&&people.filter(p=>p.owner===b.owner).length<housingCapacity(b.owner)){b.spawn=0;b.born++;addPerson(b.owner,b.x+.35,b.z+.35,'brave');if(b.owner===0)log('A new brave joins your village. Level ground around homes gives growing families more room.')}let tier=hutLevel(b),previous=b.level;if(tier>previous&&growBuilding(b,tier)){renderObjects();if(b.owner===0)log(`Your ${BUILDING_TIERS[tier].name.toLowerCase()} has grown on level ground! +${BUILDING_TIERS[tier].rooms-BUILDING_TIERS[previous].rooms} housing.`);else log(`Ember grew a ${BUILDING_TIERS[tier].name.toLowerCase()}.`)}}
  if(settlementClock>=4){settlementClock=0;for(let site of shrines.filter(s=>s.owner===1)){let threatened=dist(shaman,site)<5&&site.spirit<95;site.policy=threatened?'guard':'worship'}for(let owner=0;owner<2;owner++){planSettlement(owner);syncSitePolicies(owner)}}
- if(aiClock>(aiStyle==='villages'?26:38)){aiClock=0;let hut=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1&&!b.blessed);if(hut&&faith[1]>=30&&(aiStyle==='villages'||buildings.filter(b=>b.owner===1&&b.blessed).length<2)){hut.blessed=true;hut.belief=35;hut.policy=aiStyle==='villages'&&!buildings.some(b=>b.owner===1&&b.blessed&&b!==hut&&b.policy==='grow')?'grow':'worship';faith[1]-=30;renderObjects();log(hut.policy==='grow'?'Ember blessed a growing village.':'Ember blessed a hut and called worshippers.')}if(aiStyle==='villages'&&faith[1]>=4&&buildings.filter(b=>b.owner===1&&b.type==='hut').length>=3&&people.filter(p=>p.owner===1).length>=housingCapacity(1)-5){let elder=people.find(p=>p.owner===1&&p.type==='shaman'),move=null;for(let z=Math.max(2,Math.floor(elder.z)-5);z<=Math.min(H-3,Math.ceil(elder.z)+5)&&!move;z++)for(let x=Math.max(2,Math.floor(elder.x)-5);x<=Math.min(W-3,Math.ceil(elder.x)+5)&&!move;x++)if(dist(elder,{x,z})<=5.5)for(let dir of [-1,1]){if(terrainBrush(x,z,dir,false,1).newPlot){move={x,z,dir};break}}if(move){terrainBrush(move.x,move.z,move.dir,true,1);faith[1]-=4;renderTerrain();renderObjects();log('Ember shaped a building plot and sent settlers to it.')}}syncSitePolicies(1)}
+ if(aiClock>(aiStyle==='villages'?26:38)){aiClock=0;let hut=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1&&!b.blessed);if(hut&&faith[1]>=30&&(aiStyle==='villages'||buildings.filter(b=>b.owner===1&&b.blessed).length<2)){hut.blessed=true;hut.belief=35;hut.policy=aiStyle==='villages'&&!buildings.some(b=>b.owner===1&&b.blessed&&b!==hut&&b.policy==='grow')?'grow':'worship';faith[1]-=30;renderObjects();log(hut.policy==='grow'?'Ember blessed a growing village.':'Ember blessed a hut and called worshippers.')}if(aiStyle==='villages'&&faith[1]>=4&&buildings.filter(b=>b.owner===1&&b.type==='hut').length>=3&&people.filter(p=>p.owner===1).length>=housingCapacity(1)-5){let elder=people.find(p=>p.owner===1&&p.type==='shaman'),move=null;for(let z=Math.max(2,Math.floor(elder.z)-5);z<=Math.min(H-3,Math.ceil(elder.z)+5)&&!move;z++)for(let x=Math.max(2,Math.floor(elder.x)-5);x<=Math.min(W-3,Math.ceil(elder.x)+5)&&!move;x++)if(dist(elder,{x,z})<=5.5)for(let dir of [-1,1]){if(terrainBrush(x,z,dir,false,1).newPlot){move={x,z,dir};break}}if(move){terrainBrush(move.x,move.z,move.dir,true,1);faith[1]-=4;renderObjects();log('Ember shaped a building plot and sent settlers to it.')}}syncSitePolicies(1)}
  if(devotion[0]>=DEVOTION_GOAL||devotion[1]>=DEVOTION_GOAL)finish(devotion[0]>=DEVOTION_GOAL&&devotion[0]>=devotion[1]);updateUI()
 }
 
@@ -278,8 +394,8 @@ function action(x,z){$('#landPreview').hidden=true;clear(hoverGroup);let t=at(x,
  let cost=spellCosts[mode];if(faith[0]<cost)return toast(`Need ${cost} faith. Followers and sacred stones generate it.`);if(range>5.5)return toast('Out of range. Move the shaman closer first.');
  if(mode==='convert'){let wild=nearest(people.filter(p=>p.owner===2),point);if(!wild||dist(wild,point)>.8)return toast('Target a grey wildman.');if(people.filter(p=>p.owner===0).length>=housingCapacity(0))return toast('Your people need more housing before welcoming another follower.');wild.owner=0;wild.type='brave';wild.goal=null;faith[0]-=cost;log('Wildman joined your tribe. More followers generate more faith.');guideAdvance(0)}
  else if(mode==='bless'){let hut=t.building?.owner===0&&t.building.type==='hut'&&t.building.progress===1&&!t.building.blessed?t.building:nearest(buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed),point);if(!hut||t.building!==hut&&dist(hut,point)>1)return toast('Click a completed, unblessed friendly home.');hut.blessed=true;hut.belief=35;faith[0]-=cost;renderObjects();ping(hut.x,hut.z,gem[0]);log(`${BUILDING_TIERS[hut.level].name} blessed. Its faith income now grows permanently.`);guideAdvance(4)}
- else if(mode==='raise'||mode==='lower'){let result=terrainBrush(x,z,mode==='raise'?1:-1,true);if(!result.changed)return toast('This tile cannot be shaped in that direction.');faith[0]-=cost;renderTerrain();renderObjects();log(result.newStonePad?'Sacred ground is level. Choose Build Stone, then click the highlighted 2×2 foundation.':result.upgrade?`Your home grew into a ${BUILDING_TIERS[result.upgrade.level].name.toLowerCase()}! More housing, faith and devotion.`:result.newPlot?'A new level building plot opens. Settlers are on their way.':result.terrace?'Sacred terrace improved. Faith and site devotion rise.':`One tile ${mode==='raise'?'raised':'lowered'}. Level land around a hut or shape a 2×2 plot.`)}
- else if(mode==='bridge'){let changed=0;for(let dx=-2;dx<=2;dx++){let tile=at(x+dx,z);if(tile&&tile.h===0){tile.h=1;tile.sculptedBy=0;changed++}}if(!changed)return toast('Cast across water to create a crossing.');faith[0]-=cost;settlementClock=4;renderTerrain();renderObjects();log('Land bridge opens a path for followers and future settlements.')}
+ else if(mode==='raise'||mode==='lower'){let result=terrainBrush(x,z,mode==='raise'?1:-1,true);if(!result.changed)return toast('This tile cannot be shaped in that direction.');faith[0]-=cost;renderObjects();log(result.newStonePad?'Sacred ground is level. Choose Build Stone, then click the highlighted 2×2 foundation.':result.upgrade?`Your home grew into a ${BUILDING_TIERS[result.upgrade.level].name.toLowerCase()}! More housing, faith and devotion.`:result.newPlot?'A new level building plot opens. Settlers are on their way.':result.terrace?'Sacred terrace improved. Faith and site devotion rise.':`One tile ${mode==='raise'?'raised':'lowered'}. Level land around a hut or shape a 2×2 plot.`)}
+ else if(mode==='bridge'){let changed=0;for(let dx=-2;dx<=2;dx++){let tile=at(x+dx,z);if(tile&&tile.h===0){tile.h=1;tile.sculptedBy=0;changed++;if(terrainLevels.length)refreshTerrainAt(x+dx,z)}}if(!changed)return toast('Cast across water to create a crossing.');faith[0]-=cost;settlementClock=4;renderObjects();log('Land bridge opens a path for followers and future settlements.')}
  updateUI()
 }
 function guideAdvance(n){guideDone[n]=true;while(guideDone[guideStep]&&guideStep<5)guideStep++;updateGuide()}
@@ -296,13 +412,23 @@ function updateUI(){
  let playerRate=income(0),enemyRate=income(1),playerDevotion=devotionRate(0),enemyDevotion=devotionRate(1),population=people.filter(p=>p.owner===0).length;
  $('#population').textContent=population+'/'+housingCapacity(0);$('#enemy').textContent=people.filter(p=>p.owner===1).length;
  $('#faith').textContent=Math.floor(faith[0])+'/160';$('#devotion').textContent=Math.floor(devotion[0])+'/'+DEVOTION_GOAL;
- $('#tribe').innerHTML=`${buildings.filter(b=>b.owner===0&&b.progress===1).length} buildings · ${buildings.filter(b=>b.owner===0&&b.blessed).length} blessed · ${buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.level===3).length} forts · ${buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.level===4).length} castles<br>${people.filter(p=>p.owner===0&&p.type==='brave'&&p.role==='worker').length} workers · ${people.filter(p=>p.owner===0&&p.role==='worshipper').length} worshippers · ${shrines.filter(s=>s.owner===0).length}/3 stone circles · ${shrines.filter(s=>s.projectOwner===0).length} building<br>Housing ${population}/${housingCapacity(0)} · more level land and births grow homes into castles. Faith buys changes; productive sites earn devotion.`;
+ $('#tribe').innerHTML=`${buildings.filter(b=>b.owner===0&&b.progress===1).length} buildings · ${buildings.filter(b=>b.owner===0&&b.blessed).length} blessed · ${buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.level===3).length} forts · ${buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.level===4).length} castles<br>${people.filter(p=>p.owner===0&&p.type==='brave'&&p.role==='worker').length} workers · ${people.filter(p=>p.owner===0&&p.role==='worshipper').length} worshippers · ${shrines.filter(s=>s.owner===0).length}/${shrines.length} stone circles · ${shrines.filter(s=>s.projectOwner===0).length} building<br>Housing ${population}/${housingCapacity(0)} · more level land and births grow homes into castles. Faith buys changes; productive sites earn devotion.`;
  $('#status').textContent=`${running?'World running':'Paused'} · ${speed}× · ${Math.floor(elapsed)}s · Faith +${playerRate.toFixed(1)}/s · Devotion +${playerDevotion.toFixed(1)}/s`;
  $('#objective').innerHTML=`<b>DEVOTION ${Math.floor(devotion[0])} / ${DEVOTION_GOAL} · EMBER ${Math.floor(devotion[1])} / ${DEVOTION_GOAL}</b><span>Your sites +${playerDevotion.toFixed(1)}/s · Ember +${enemyDevotion.toFixed(1)}/s · Stones <em class="verdant">${shrines.filter(s=>s.owner===0).length}</em> : <em class="ember">${shrines.filter(s=>s.owner===1).length}</em></span><div class="devotion-race"><div class="track"><i style="width:${Math.min(100,devotion[0]/DEVOTION_GOAL*100)}%"></i></div><div class="track ember"><i style="width:${Math.min(100,devotion[1]/DEVOTION_GOAL*100)}%"></i></div></div>`;
- $('#hint').textContent=hints[mode];updateDecision();updateSitePanel();document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);b.setAttribute('aria-pressed',String(b.dataset.mode===mode))})
+ $('#hint').textContent=hints[mode];updateDecision();updateSitePanel();drawMinimap();document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);b.setAttribute('aria-pressed',String(b.dataset.mode===mode))})
+}
+function drawMinimap(force=false){
+ let canvas=$('#minimap');if(typeof canvas?.getContext!=='function'||!tiles.length)return;
+ let now=performance.now();if(!force&&now-lastMini<250)return;lastMini=now;
+ let ctx=canvas.getContext('2d'),palette=['#31596b','#8b795a','#76965f','#68a16c','#8a9c71','#ada78d'];
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){let tile=at(x,z);ctx.fillStyle=palette[tile.h];ctx.fillRect(x*3,z*3,3,3);if(tile.tree){ctx.fillStyle='#284f3e';ctx.fillRect(x*3+1,z*3+1,2,2)}}
+ for(let b of buildings){ctx.fillStyle=b.owner===0?'#a5efd3':'#ffad8a';ctx.fillRect(b.x*3-1,b.z*3-1,5,5)}
+ for(let site of shrines){ctx.fillStyle=site.owner===0?'#8fffe1':site.owner===1?'#ffac83':site.projectOwner===0?'#6ccbb4':site.projectOwner===1?'#d48168':'#f3d487';ctx.beginPath();ctx.arc(site.x*3+1.5,site.z*3+1.5,4.5,0,Math.PI*2);ctx.fill()}
+ for(let p of people.filter(p=>p.type==='shaman')){ctx.strokeStyle=p.owner===0?'#e7fff2':'#ffdbc8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x*3+1.5,p.z*3+1.5,3.5,0,Math.PI*2);ctx.stroke()}
+ let x=(target.x+W/2)*3,z=(target.z+H/2)*3;ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.strokeRect(x-(camera.right-camera.left)*1.5,z-(camera.top-camera.bottom)*1.5,(camera.right-camera.left)*3,(camera.top-camera.bottom)*3)
 }
 function cameraTarget(x,z){target.set(x-W/2,0,z-H/2);updateCamera()}
-function updateCamera(){let size=15/zoom,aspect=Math.max(.5,stage.clientWidth/stage.clientHeight);camera.left=-size*aspect;camera.right=size*aspect;camera.top=size;camera.bottom=-size;camera.position.set(target.x+Math.sin(angle)*size*1.4,size*1.1,target.z+Math.cos(angle)*size*1.4);camera.lookAt(target);camera.updateProjectionMatrix()}
+function updateCamera(){target.x=clamp(target.x,-W/2+4,W/2-4);target.z=clamp(target.z,-H/2+4,H/2-4);let size=15/zoom,aspect=Math.max(.5,stage.clientWidth/stage.clientHeight);camera.left=-size*aspect;camera.right=size*aspect;camera.top=size;camera.bottom=-size;camera.position.set(target.x+Math.sin(angle)*size*1.4,size*1.1,target.z+Math.cos(angle)*size*1.4);camera.lookAt(target);camera.updateProjectionMatrix();sun.position.set(target.x-13,23,target.z+8);sun.target.position.set(target.x,0,target.z);sun.target.updateMatrixWorld();drawMinimap()}
 function pick(e){let r=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);let hits=ray.intersectObjects([...terrain.children,water]);if(!hits.length)return null;let v=hits[0].point,x=Math.round(v.x+W/2-.5),z=Math.round(v.z+H/2-.5);return x>=0&&z>=0&&x<W&&z<H?{x,z}:null}
 let previewAt=0;
 function landPreview(e){let preview=$('#landPreview');if(drag||selectedSite||!['raise','lower','hut','stone'].includes(mode)){preview.hidden=true;clear(hoverGroup);return}if(performance.now()-previewAt<80)return;previewAt=performance.now();let point=pick(e);clear(hoverGroup);if(!point){preview.hidden=true;return}
@@ -313,6 +439,8 @@ function landPreview(e){let preview=$('#landPreview');if(drag||selectedSite||!['
 }
 stage.addEventListener('pointermove',landPreview);stage.addEventListener('pointerleave',()=>{$('#landPreview').hidden=true;clear(hoverGroup)});
 stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,moved:false,button:e.button}});stage.addEventListener('pointermove',e=>{if(!drag)return;let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;if(drag.moved){if(drag.button===2)angle+=dx*.007;else{let a=angle,scale=15/zoom/Math.max(stage.clientHeight,1)*2;target.x+=(-dx*Math.cos(a)+dy*Math.sin(a))*scale;target.z+=(dx*Math.sin(a)+dy*Math.cos(a))*scale}updateCamera()}drag.x=e.clientX;drag.y=e.clientY});stage.addEventListener('pointerup',e=>{if(!drag)return;let moved=drag.moved;drag=null;if(!moved){let p=pick(e);if(p)action(p.x,p.z)}});stage.addEventListener('contextmenu',e=>e.preventDefault());stage.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY<0?1.12:.89),.55,2.2);updateCamera()},{passive:false});
+$('#minimap').addEventListener('pointerdown',e=>{let rect=e.currentTarget.getBoundingClientRect(),x=clamp((e.clientX-rect.left)/rect.width*W,0,W-1),z=clamp((e.clientY-rect.top)/rect.height*H,0,H-1);cameraTarget(x,z);drawMinimap(true)});
+$('#minimap').addEventListener('keydown',e=>{let delta={ArrowLeft:[-6,0],ArrowRight:[6,0],ArrowUp:[0,-6],ArrowDown:[0,6]}[e.key];if(!delta)return;e.preventDefault();cameraTarget(target.x+W/2+delta[0],target.z+H/2+delta[1]);drawMinimap(true)});
 $('#sitePanel').onclick=e=>{let button=e.target.closest('button'),site=selectedSite;if(!button||button.disabled||!site)return;
  if(button.dataset.siteAction==='close'){selectedSite=null;updateSitePanel();return}
  if(button.dataset.siteAction==='build'){mode='stone';selectedSite=null;cameraTarget(site.x,site.z);toast(stoneCandidate(site)?'Hover the four possible 2×2 foundations. Click a highlighted one to build.':'Shape a level 2×2 foundation around this rune, then choose Build Stone.');updateUI();return}

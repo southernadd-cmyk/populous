@@ -24,10 +24,10 @@ Free workers compare fuzzy degrees of proximity, building urgency, low belief, h
 - While a circle is being built, its coloured progress bar and rising stones show work; a nearby rival shaman halves construction speed. Finished circles use the same bar for spiritual health. A keeper on Guard slows pressure; a nearby friendly shaman, worshippers, or a Ritual also helps. A rival can convert the completed structure.
 - A stone's first four aligned neighbouring tiles improve output. Later matching tiles do not provide more bonuses, so reshaping the whole ring is optional.
 - A Festival needs two present worshippers, belief of at least 55 and 70 Faith. The whole tribe then waits 60 seconds before another celebration, keeping this a timing choice.
-- The opponent chooses a settlement or pilgrimage emphasis per map. It cannot maximise both approaches at once, and it switches to Guard when its stones are threatened.
+- The opponent chooses a settlement or pilgrimage emphasis per map. It cannot maximise both approaches at once, and it switches to Guard when its stones are threatened. Five sites on the larger map offer two flanking routes and a centre route; the minimap lets the player switch attention between them.
 
 ## Verification and next playtest
 
-The logic checks cover a one-tile plot unlock, automatic hut planning, graded follower job changes, all four building stages and their reserved footprints, housing and passive Devotion, the required stone construction sequence, Guard pressure, and winning scripts for both village and stone strategies against both opponent styles. These scripts establish viable mechanics, not human enjoyment.
+The checks cover a one-tile plot unlock, automatic hut planning, graded follower job changes, all four building stages and their reserved footprints, housing and passive Devotion, the required stone construction sequence, Guard pressure, terrain batch updates and picking, and winning scripts for both village and stone strategies against both opponent styles. These scripts establish viable mechanics, not human enjoyment.
 
 A WebGL playtest should check that the first terrain edit feels worthwhile, followers reach the promised stone foundation, the exact click target is clear without a tutorial, a threatened stone gives enough response time, and the two strategies stay competitive when a human makes imperfect decisions. Tune pacing from those observations before adding new currencies or powers.
