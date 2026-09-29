@@ -364,7 +364,7 @@ test('groves use low-mid land while minerals require mineral-bearing high ground
   const g=game(.217);
   const low=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=1&&t.h<=3&&!t.tree&&!t.mineral&&!t.building&&!shrines.some(s=>s.x===x&&s.z===z))return {x,z}}})()`);
   const bearing=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&t.geology>0&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z))return {x,z}}})()`);
-  const barren=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.geology&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z))return {x,z}}})()`);
+  const barren=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z)){t.geology=0;return {x,z}}}})()`);
   assert.ok(low&&bearing&&barren);
   assert.equal(g.eval(`groveAllowed(at(${low.x},${low.z}))`),true);
   assert.equal(g.eval(`mineralAllowed(at(${low.x},${low.z}))`),false);
