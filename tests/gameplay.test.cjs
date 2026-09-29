@@ -417,10 +417,10 @@ test('local resource density changes the environmental pull around a settlement'
 
 test('Plant Grove creates a cluster with finite timber rather than one permanent tree',()=>{
   const g=game(.217);
-  g.eval(`var groveCast=null;for(let z=2;z<H-2&&!groveCast;z++)for(let x=2;x<W/2&&!groveCast;x++){if(environmentFeatureAllowed('grove',x,z)&&dist(shaman,{x,z})<=5.5)groveCast={x,z}};faith[0]=100;var groveCount=groveFootprint(groveCast.x,groveCast.z).length;placeEnvironmentFeature('grove',groveCast.x,groveCast.z,0)`);
+  g.eval(`var groveCast=null;for(let z=2;z<H-2&&!groveCast;z++)for(let x=2;x<W/2&&!groveCast;x++){if(environmentFeatureAllowed('grove',x,z)&&dist(shaman,{x,z})<=5.5)groveCast={x,z}};faith[0]=100;var plantedTiles=groveFootprint(groveCast.x,groveCast.z);var groveCount=plantedTiles.length;placeEnvironmentFeature('grove',groveCast.x,groveCast.z,0)`);
   assert.ok(g.eval('groveCount>=3'));
-  assert.equal(g.eval(`GROVE_OFFSETS.map(([dx,dz])=>at(groveCast.x+dx,groveCast.z+dz)).filter(t=>t?.tree).length`),g.eval('groveCount'));
-  assert.equal(g.eval(`GROVE_OFFSETS.map(([dx,dz])=>at(groveCast.x+dx,groveCast.z+dz)).filter(t=>t?.tree).every(t=>t.wood===TREE_TIMBER_MAX)`),true);
+  assert.equal(g.eval(`plantedTiles.every(p=>at(p.x,p.z).tree)`),true);
+  assert.equal(g.eval(`plantedTiles.every(p=>at(p.x,p.z).wood===TREE_TIMBER_MAX)`),true);
 });
 
 test('builders consume timber in units before a tree is removed',()=>{
