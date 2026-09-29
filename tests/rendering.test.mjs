@@ -11,10 +11,11 @@ test('inspect raycasts the visible building meshes rather than only terrain',()=
  assert.match(source,/intersectObjects\(objects\.children\.filter\(o=>o\.userData\.inspectBuilding\),false\)/);
 });
 
-test('inspect opens the site card for ordinary friendly homes, not only blessed ones',()=>{
+test('inspect opens a read-only site card for friendly homes',()=>{
  assert.match(source,/occupied\?\.owner===0&&occupied\.type==='hut'/);
  assert.match(source,/home=buildings\.includes\(site\)&&site\?\.owner===0&&site\?\.type==='hut'/);
- assert.match(source,/unblessed: use Bless to make this home generate Faith and Devotion/);
+ assert.doesNotMatch(source,/data-site-policy=/);
+ assert.doesNotMatch(source,/data-site-action="festival"/);
 });
 
 test('terrain sculpting preview exposes the logical tile and resulting height',()=>{
@@ -62,4 +63,12 @@ test('sloped terrain preserves logical tile centres and remains raycastable',()=
  const treeCode=source.slice(source.indexOf('function renderObjects(){'),source.indexOf('function updateShrineVisuals()'));
  vm.runInContext(treeCode,context);vm.runInContext('renderObjects()',context);
  assert.equal(objects.children.length,4,'tree batching still works on the sloped surface');
+});
+
+
+test('environmental resource features are rendered and exposed as player powers',()=>{
+ assert.match(source,/PLANT GROVE/);
+ assert.match(source,/EXPOSE MINERALS/);
+ assert.match(source,/if\(!t\.mineral\|\|!t\.h\)continue/);
+ assert.match(source,/intent\.kind==='mine'\?t\.mineral>0/);
 });
