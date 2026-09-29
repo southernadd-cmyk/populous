@@ -81,14 +81,14 @@ test('land bridges cross the new rivers and clear the water markers',()=>{
   assert.equal(g.eval('faith[0]'),70);
 });
 
-test('idle followers have housing, but earn no devotion without productive sites', () => {
+test('completed homes contribute automatically while spare followers use the environment', () => {
   const g = game(.217);
-  assert.equal(g.eval('devotion[0]'), 0);
   assert.equal(g.eval('plotAt(CAMPS[0].x,CAMPS[0].z+3,0)&&plotAt(CAMPS[1].x,CAMPS[1].z+3,1)'), true);
+  assert.ok(g.eval('devotionRate(0)>0'),'the starting completed home contributes without a Bless command');
   g.advance(50);
-  assert.equal(g.eval('devotion[0]'), 0);
+  assert.ok(g.eval('devotion[0]>0'));
   assert.ok(g.eval('people.filter(p=>p.owner===0).length<=housingCapacity(0)'));
-  assert.ok(g.eval("people.some(p=>p.owner===0&&['hunt','mine','explore'].includes(p.intent?.kind)||p.owner===0&&p.ambientReturn)"), 'spare workers should leave the houses for useful roaming jobs');
+  assert.ok(g.eval("people.some(p=>p.owner===0&&['hunt','mine','explore'].includes(p.intent?.kind)||p.owner===0&&p.ambientReturn)"), 'spare workers should leave the houses for useful environmental jobs');
   assert.ok(g.eval('devotion[1]>0'));
 });
 
