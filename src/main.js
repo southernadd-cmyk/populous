@@ -12,11 +12,12 @@ const roofGeo=new THREE.BufferGeometry(),roofPoints=[[-.5,.45,0],[.5,.45,0],[-.5
 roofGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,2,3,0,3,1,0,1,5,0,5,4,0,4,2,1,3,5,2,4,5,2,5,3].flatMap(i=>roofPoints[i]),3));roofGeo.computeVertexNormals();
 const mat=(c,extra={})=>new THREE.MeshStandardMaterial({color:c,roughness:.92,...extra});const landMats=[null,mat(0x988665),mat(0x869a66),mat(0x73a26a),mat(0x7e9569),mat(0xb9b8ae)],sideMats=[null,mat(0x605747),mat(0x5e6650),mat(0x52684b),mat(0x53624d),mat(0x777d7b)];const woodMat=mat(0x725746),roofMats=[mat(0x446a56),mat(0xa45043)],stoneMat=mat(0xc0ad83),wildMat=mat(0xc8c0a4),trunkMat=mat(0x654c38),leafMats=[mat(0x294e3c),mat(0x38664a),mat(0x54825a)],waterMat=mat(0x9cc4bc,{transparent:true,opacity:.35}),terraceGold=mat(0xd1bd7b),terraceRough=mat(0xb17b68),plotHighlight=mat(0x8fffe1,{emissive:0x216e58,emissiveIntensity:.6}),hoverLineMat=new THREE.LineBasicMaterial({color:0xe9fff8,transparent:true,opacity:.95,depthTest:false}),hoverResultMat=new THREE.LineBasicMaterial({color:0x8fffe1,transparent:true,opacity:.9,depthTest:false}),spiritBack=mat(0x172b30),sacredGround=mat(0xd6ba7b,{emissive:0x9a7140,emissiveIntensity:.45});
 const plasterMat=mat(0xdacba8),thatchMat=mat(0xb5a16d),timberMat=mat(0x583f31),masonryMat=mat(0x929e91),masonryLight=mat(0xd1c5a7),doorMat=mat(0x352c2b),windowMat=mat(0xf6d486,{emissive:0x9c6b24,emissiveIntensity:.45}),pebbleMat=mat(0xffffff),mineralMat=mat(0x9aa6b2,{metalness:.18}),oreTraceMat=mat(0x66737b,{metalness:.08});
-const DEVOTION_GOAL=4000,FESTIVAL_COST=70,STONE_COST=20,GROVE_COST=12,MINERAL_COST=16,STONE_RITE_TERRACE=7,REGIONAL_FESTIVAL_REWARD=900,REGIONS=['North','Crossing','South'];
+const DEVOTION_GOAL=4000,FESTIVAL_COST=70,STONE_COST=20,GROVE_COST=12,MINERAL_COST=16,TREE_TIMBER_MAX=2,STONE_RITE_TERRACE=7,REGIONAL_FESTIVAL_REWARD=900,REGIONS=['North','Crossing','South'];
+const GROVE_OFFSETS=[[0,0],[1,0],[-1,0],[0,1],[0,-1]];
 const BUILDING_TIERS=[null,{name:'Hut',flat:0,born:0,age:0,wait:0,rooms:6},{name:'House',flat:4,born:3,age:25,wait:0,rooms:9},{name:'Fort',flat:6,born:6,age:85,wait:35,rooms:13},{name:'Castle',flat:8,born:10,age:160,wait:50,rooms:18}];
 const CAMPS=[{x:10,z:H/2},{x:W-11,z:H/2}];
 const SHRINE_SPOTS=[{x:18,z:H/2-6},{x:18,z:H/2+6},{x:W/2,z:H/2},{x:W-19,z:H/2-6},{x:W-19,z:H/2+6}];
-let nextFestivalAt=[0,0],regionalVows=[new Set(),new Set()],riteClock=0,enemyPilgrimAt=15,aiStyle='stones',seed=2026,tiles=[],buildings=[],people=[],faith=[45,45],devotion=[0,0],lastSettlementAt=[-30,-30],shrines=[],mode='inspect',running=true,speed=1,elapsed=0,tick=0,aiClock=0,settlementClock=0,ended='',logs=[],toastTimer=0,fx=[],shaman,selectedSite=null,lastMini=-1000;
+let nextFestivalAt=[0,0],regionalVows=[new Set(),new Set()],riteClock=0,forestClock=0,enemyPilgrimAt=15,aiStyle='stones',seed=2026,tiles=[],buildings=[],people=[],faith=[45,45],devotion=[0,0],lastSettlementAt=[-30,-30],shrines=[],mode='inspect',running=true,speed=1,elapsed=0,tick=0,aiClock=0,settlementClock=0,ended='',logs=[],toastTimer=0,fx=[],shaman,selectedSite=null,lastMini=-1000;
 let terrainLevels=[],terrainSlots=null,terrainHeights=null,pebbleSlots=null,pebbleInstances=null;
 const instanceTransform=new THREE.Object3D();
 function newShrines(){return SHRINE_SPOTS.map(({x,z})=>({x,z,owner:2,projectOwner:2,progress:0,buildX:null,buildZ:null,spirit:0,lock:0}))}
@@ -55,13 +56,13 @@ function paintLandforms(){
 function makeWorld(){
  clear(unitsGroup);clear(fxGroup);fx=[];seed=Math.floor(Math.random()*900000)+1000;aiStyle=rand(41,67)>.5?'villages':'stones';
  tiles=[];buildings=[];people=[];faith=[45,45];devotion=[0,0];lastSettlementAt=[-30,-30];nextFestivalAt=[0,0];regionalVows=[new Set(),new Set()];enemyPilgrimAt=aiStyle==='villages'?40:15;shrines=newShrines();
- elapsed=0;tick=0;aiClock=0;settlementClock=0;riteClock=0;ended='';running=true;speed=1;logs=[];mode='inspect';selectedSite=null;lastMini=-1000;
+ elapsed=0;tick=0;aiClock=0;settlementClock=0;riteClock=0;forestClock=0;ended='';running=true;speed=1;logs=[];mode='inspect';selectedSite=null;lastMini=-1000;
  $('#sitePanel').hidden=true;$('#result').hidden=true;$('#pause').textContent='PAUSE';$('#speed').textContent='1× SPEED';
  for(let z=0;z<H;z++)for(let x=0;x<W;x++){
   let mirror=Math.min(x,W-1-x),island=Math.min(x,W-1-x,z,H-1-z);
   let noise=rand(Math.floor(mirror/3),Math.floor(z/3))*.7+rand(mirror,z)*.3;
   let h=island<2||noise<.16?0:clamp(Math.floor(noise*4.5),1,4);
-  tiles.push({h,tree:h>0&&h<=3&&rand(mirror,z,seed+1)>.76,geology:geologyAt(x,z),mineral:0,wood:0,building:null,feature:null})
+  let tree=h>0&&h<=3&&rand(mirror,z,seed+1)>.76;tiles.push({h,tree,wood:tree?TREE_TIMBER_MAX:0,regrowAt:0,geology:geologyAt(x,z),mineral:0,building:null,feature:null})
  }
  paintLandforms();
  for(let camp of CAMPS)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){let t=at(camp.x+dx,camp.z+dz);t.h=2;t.tree=false}
@@ -79,7 +80,7 @@ function makeWorld(){
   addBuilding(camp.x,camp.z,owner,'hearth',true);
   addBuilding(camp.x+(owner?2:-2),camp.z-1,owner,'hut',true);
   addBuilding(camp.x+(owner?-2:2),camp.z,owner,'hut');
-  for(let [dx,dz] of [[5,-3],[6,3]]){let t=at(camp.x+(owner?-dx:dx),camp.z+dz);t.h=2;t.tree=true;t.mineral=0}
+  for(let [dx,dz] of [[5,-3],[6,3]]){let t=at(camp.x+(owner?-dx:dx),camp.z+dz);t.h=2;t.tree=true;t.wood=TREE_TIMBER_MAX;t.regrowAt=0;t.mineral=0}
   for(let i=0;i<5;i++)addPerson(owner,camp.x+(owner?1:-1)+rand(i,owner),camp.z-1+rand(i,owner+2)*2,'brave')
  }
  let wildClusters=[[13,22],[18,21],[18,29],[30,19],[34,29],[W-19,21],[W-19,29],[W-14,22]];
@@ -311,7 +312,7 @@ function growthDetails(hut){let next=BUILDING_TIERS[hut.level+1];if(!next)return
 function growBuilding(hut,tier){let footprint=buildingFootprint(hut,tier);if(!footprint)return false;for(let tile of footprint)at(tile.x,tile.z).building=hut;hut.footprint=footprint;hut.level=tier;hut.lastGrowthAt=elapsed;if(tier>=3)hut.stonework=Math.max(0,(hut.stonework||0)-2);return true}
 function upgradedHutFromTile(x,z,next,owner=0){let tile=at(x,z),old=tile.h,before=buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1&&dist(b,{x,z})<1.5).map(b=>({b,level:hutLevel(b)}));tile.h=next;let upgrade=before.find(({b,level})=>hutLevel(b)>Math.max(level,b.level));let tier=upgrade&&hutLevel(upgrade.b),footprint=upgrade&&buildingFootprint(upgrade.b,tier);tile.h=old;return upgrade?{hut:upgrade.b,level:tier,footprint}:null}
 function newPlotFromTile(x,z,next,owner=0){let tile=at(x,z),old=tile.h,was=[];for(let dz=-1;dz<=0;dz++)for(let dx=-1;dx<=0;dx++)was.push(plotAt(x+dx,z+dz,owner));tile.h=next;let plot=null,i=0;for(let dz=-1;dz<=0;dz++)for(let dx=-1;dx<=0;dx++,i++)if(!was[i]&&plotAt(x+dx,z+dz,owner))plot={x:x+dx,z:z+dz};tile.h=old;return plot}
-function terrainBrush(x,z,dir,apply=false,owner=0){let t=at(x,z),terrace=shrines.find(site=>site.owner===owner&&Math.max(Math.abs(site.x-x),Math.abs(site.z-z))===1)||null;if(!t||t.building||shrines.some(site=>site.x===x&&site.z===z||stoneFootprint(site,x,z)))return {changed:0,terrace};if(terrace){let target=height(terrace.x,terrace.z);if(dir>0&&t.h>=target||dir<0&&t.h<=target)return {changed:0,terrace}}let next=clamp(t.h+dir,0,5);if(next===t.h)return {changed:0,terrace};let newPlot=newPlotFromTile(x,z,next,owner),newStonePad=newStonePadFromTile(x,z,next),upgrade=upgradedHutFromTile(x,z,next,owner);if(apply){t.h=next;t.feature=null;t.sculptedBy=owner;if(next>3)t.tree=false;if(next<4)t.mineral=0;if(!next){t.tree=false;t.mineral=0}refreshTerrainAt(x,z);if(upgrade)growBuilding(upgrade.hut,upgrade.level);if(newPlot)settlementClock=4}return {changed:1,terrace,newPlot,newStonePad,upgrade}}
+function terrainBrush(x,z,dir,apply=false,owner=0){let t=at(x,z),terrace=shrines.find(site=>site.owner===owner&&Math.max(Math.abs(site.x-x),Math.abs(site.z-z))===1)||null;if(!t||t.building||shrines.some(site=>site.x===x&&site.z===z||stoneFootprint(site,x,z)))return {changed:0,terrace};if(terrace){let target=height(terrace.x,terrace.z);if(dir>0&&t.h>=target||dir<0&&t.h<=target)return {changed:0,terrace}}let next=clamp(t.h+dir,0,5);if(next===t.h)return {changed:0,terrace};let newPlot=newPlotFromTile(x,z,next,owner),newStonePad=newStonePadFromTile(x,z,next),upgrade=upgradedHutFromTile(x,z,next,owner);if(apply){t.h=next;t.feature=null;t.sculptedBy=owner;if(next>3){t.tree=false;t.wood=0;t.regrowAt=0}if(next<4)t.mineral=0;if(!next){t.tree=false;t.wood=0;t.regrowAt=0;t.mineral=0}refreshTerrainAt(x,z);if(upgrade)growBuilding(upgrade.hut,upgrade.level);if(newPlot)settlementClock=4}return {changed:1,terrace,newPlot,newStonePad,upgrade}}
 function bridgeTiles(x,z){let choices=[[1,0],[0,1]].map(([dx,dz])=>{let line=Array.from({length:5},(_,i)=>({x:x+(i-2)*dx,z:z+(i-2)*dz})),ends=line.map(p=>at(p.x,p.z));return {tiles:line.filter(p=>at(p.x,p.z)?.h===0),crossing:ends[0]?.h>0&&ends[4]?.h>0}}).filter(choice=>choice.tiles.length);choices.sort((a,b)=>Number(b.crossing)-Number(a.crossing)||a.tiles.length-b.tiles.length);return choices[0]?.tiles||[]}
 function bestTerraceBrush(site){let best=null,target=height(site.x,site.z);for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;let x=site.x+dx,z=site.z+dz,t=at(x,z);if(!t||t.h===target)continue;let dir=Math.sign(target-t.h),plan=terrainBrush(x,z,dir,false,site.owner);if(plan.changed&&(!best||Math.abs(target-t.h)<best.steps))best={x,z,dir,changed:1,steps:Math.abs(target-t.h)}}return best}
 function approachSite(p,site){let spots=[{x:site.x+.8,z:site.z},{x:site.x-.8,z:site.z},{x:site.x,z:site.z+.8},{x:site.x,z:site.z-.8}].filter(q=>validLand(Math.round(q.x),Math.round(q.z)));return nearest(spots,p)||{x:site.x,z:site.z}}
