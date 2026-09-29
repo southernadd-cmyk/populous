@@ -1,34 +1,30 @@
-# Gameplay decisions — current build
+# Gameplay decisions — environmental influence
 
-The player reshapes a living landscape and guides a tribe to win a contest of devotion. Actions should have a visible consequence within a few seconds; site policies make the next few minutes play out differently.
+The player should make persistent changes by altering the world, not by issuing labour or settlement-focus orders. The design target is: **shape conditions, observe behaviour, reshape the world.**
 
-## One loop, several plans
+## Core loop
 
-**Shape useful ground → followers build or worship → productive sites earn Devotion and Faith → spend Faith to extend or protect them.** Workers build and gather automatically. Faith is the spendable stock; Devotion is the single victory score. Passive followers earn only Faith. A finished, blessed home or built stone circle earns Devotion according to worshippers and local belief.
+**Shape useful ground and resources → autonomous followers respond → settlements and sacred sites develop → Faith and Devotion increase → reshape a wider world.**
 
-| Plan | Opening decision | Ongoing tradeoff | Opponent response |
-| --- | --- | --- | --- |
-| Village network | Bless a home and set a growth hub; shape plots as housing fills. | More builders now versus worshippers scoring now. | Rival builders may finish a sacred circle while the player expands. |
-| Stone focus | Shape a 2×2 site foundation, spend 20 Faith and commit builders to a circle. | Early investment and fewer hut builders for later Faith, worship and festivals. | Rival shapes competing sites, slows a project with its shaman or contests a finished circle. |
-| Flexible | Develop one village, then choose the best reachable stone or plot. | Spend Faith on expansion, festivals or protection. | Rival's selected style changes the timing and pressure. |
+The player can move the shaman and inspect information, but persistent interventions should be environmental: raise or lower land, create crossings, plant groves, expose mineral seams, and construct stone circles on prepared sacred foundations. Huts appear automatically on suitable level plots when expansion is useful.
 
-Grow on a productive site attracts huts on nearby level 2×2 plots as housing approaches its limit. A single tile change can also unlock a plot immediately. A hut grows into a house after three growth steps, 25 seconds and four clear level neighbours; a fort after six growth steps, 85 seconds and six neighbours on a clear 2×2 footprint; and a castle after ten growth steps, 160 seconds and all eight neighbours on a clear 3×3 footprint. Each later stage also needs time since the last growth. Later buildings claim those tiles, add housing and improve the Faith and Devotion of a blessed village. Their models change from thatch and timber to a palisade and finally a stone keep with towers. This makes land shaping matter after the first hut is built.
+## Environmental signals
 
-Free workers compare fuzzy degrees of proximity, building urgency, low belief, housing pressure and local staffing. They select the strongest build, tend or support intention, hold it for a short interval, then reconsider. Supporting workers stay near villages or completed circles, where their presence improves household growth and local belief. Delivering wood and the player-assigned Worship and Guard roles remain dependable commitments.
+- **Level 2×2 land** invites settlement.
+- **More level neighbours** let homes grow into houses, forts and castles.
+- **Trees / groves** provide building timber and hunting opportunities; hunting provisions speed household growth.
+- **Mineral seams** attract miners; returned stone accelerates later building maturation. Deposits are finite.
+- **Distant open land** encourages scouting; discoveries return a small amount of Faith.
+- **Four aligned sacred terrace tiles** strengthen a stone and begin attracting worship.
+- **Seven aligned terrace tiles** prepare a regional festival and attract the worshippers needed for it.
+- **A nearby rival shaman** causes an owned stone to attract a keeper automatically.
 
-## Rules that keep the choices readable
+There are no Grow/Worship/Guard policy buttons, no Plan Hut order, and no Convert/Bless/Ritual player spells. Festivals occur automatically when the prepared landscape, belief, worshippers, health, Faith threshold and cooldown all line up.
 
-- Each land spell changes exactly one tile for 4 Faith. The tile preview explains when an edit opens a plot, expands a home, or improves a stone.
-- A sacred site begins empty. Its rune must lie within a clear, level 2×2 footprint; the player chooses the footprint, pays 20 Faith with a nearby shaman, and followers build the circle. The rival obeys the same cost and building rules. Empty sites generate nothing, and no Ritual can skip construction.
-- A site has one policy: **Grow**, **Worship**, or **Guard** (stones only). Policies automatically move available followers, while leaving three workers free when assigning worshippers.
-- While a circle is being built, its coloured progress bar and rising stones show work; a nearby rival shaman halves construction speed. Finished circles use the same bar for spiritual health. A keeper on Guard slows pressure; a nearby friendly shaman, worshippers, or a Ritual also helps. A rival can convert the completed structure.
-- A stone's first four aligned neighbouring tiles improve output. Seven matching tiles prepare its regional festival; later matching tiles do not improve production.
-- A Festival needs two present worshippers, belief of at least 55, a healthy site and 70 Faith. The whole tribe then waits 60 seconds before another celebration. One first festival in each of North, Crossing and South, plus 4,000 Devotion, wins. Homes within 5.5 tiles of a rune can qualify after reaching a house in North or South or a fort at Crossing. This gives village and stone routes to each region.
-- The opponent chooses a settlement or pilgrimage emphasis per map. It cannot maximise both approaches at once, and it switches to Guard when its stones are threatened. Five sites on the larger map offer two flanking routes and a centre route; the minimap lets the player switch attention between them.
-- The opening tabbed field guide explains the rules over a captured view of the actual game world. In play, the objective bar and inspected sites show progress; no suggestion card performs a move for the player.
+## Decision standard
 
-## Verification and next playtest
+A good decision changes the environment in a way that creates competing downstream consequences. Planting a grove can help construction and hunting but occupies land that might otherwise become a building plot. Exposing minerals creates industrial pull but also consumes Faith and a clear tile. Levelling ground can grow a settlement, strengthen a sacred terrace, or open a route. The goal is not to choose a focus from a menu; it is to create a world in which the desired behaviour becomes the sensible autonomous response.
 
-The checks cover a one-tile plot unlock, automatic hut planning, graded follower job changes, all four building stages and their reserved footprints, housing and passive Devotion, the required stone construction sequence, Guard pressure, distinct regional festivals, terrain batch updates and picking, and a stone route against both opponent styles. These scripts establish viable mechanics, not human enjoyment.
+## Playtest questions
 
-A WebGL playtest should check that the first terrain edit feels worthwhile, followers reach the promised stone foundation, the exact click target is clear without a tutorial, a threatened stone gives enough response time, and the two strategies stay competitive when a human makes imperfect decisions. Tune pacing from those observations before adding new currencies or powers.
+Human playtests should ask whether players can infer why followers chose a job from visible map conditions, whether environmental interventions create noticeable behavioural changes, whether any one resource feature becomes an obvious dominant choice, and whether the player has a meaningful world-shaping decision every 15–30 seconds.
