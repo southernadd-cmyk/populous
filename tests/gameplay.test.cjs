@@ -302,6 +302,47 @@ test('an occupied hut grows in stages only after land, births and maturity miles
   assert.equal(blocked.eval('at(13,25).building===neighbour'), true);
 });
 
+test('Ember uses the same environmental placement rules and costs as the player',()=>{
+  const g=game(.217);
+  g.eval(`var emberShaman=people.find(p=>p.owner===1&&p.type==='shaman');
+    var emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
+    for(let z=Math.max(1,emberHome.z-10);z<=Math.min(H-2,emberHome.z+10);z++)for(let x=Math.max(1,emberHome.x-10);x<=Math.min(W-2,emberHome.x+10);x++){let t=at(x,z);if(t&&!t.building){t.tree=false;t.mineral=0}}
+    var groveSite=null;for(let z=Math.max(1,emberHome.z-8);z<=Math.min(H-2,emberHome.z+8)&&!groveSite;z++)for(let x=Math.max(1,emberHome.x-8);x<=Math.min(W-2,emberHome.x+8)&&!groveSite;x++){let t=at(x,z);if(t&&t.h>=1&&t.h<=3&&!t.building&&!sacredResourceBlocked(x,z))groveSite={x,z}}
+    emberShaman.x=groveSite.x;emberShaman.z=groveSite.z;faith[1]=100`);
+  const before=g.eval('faith[1]');
+  assert.equal(g.eval("placeEnvironmentFeature('grove',groveSite.x,groveSite.z,1)"),true);
+  assert.equal(g.eval('at(groveSite.x,groveSite.z).tree'),true);
+  assert.equal(g.eval('faith[1]'),before-g.eval('GROVE_COST'));
+
+  g.eval(`var mineralSite=null;for(let z=1;z<H-1&&!mineralSite;z++)for(let x=W/2;x<W-1&&!mineralSite;x++){let t=at(x,z);if(t&&t.h>=4&&!t.building&&!t.tree&&!sacredResourceBlocked(x,z))mineralSite={x,z}}
+    emberShaman.x=mineralSite.x;emberShaman.z=mineralSite.z`);
+  const mineralBefore=g.eval('faith[1]');
+  assert.equal(g.eval("placeEnvironmentFeature('mineral',mineralSite.x,mineralSite.z,1)"),true);
+  assert.equal(g.eval('at(mineralSite.x,mineralSite.z).mineral'),4);
+  assert.equal(g.eval('faith[1]'),mineralBefore-g.eval('MINERAL_COST'));
+});
+
+test('Ember chooses resource-poor settlements for environmental intervention',()=>{
+  const g=game(.217);
+  g.eval(`var emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
+    for(let z=Math.max(1,emberHome.z-10);z<=Math.min(H-2,emberHome.z+10);z++)for(let x=Math.max(1,emberHome.x-10);x<=Math.min(W-2,emberHome.x+10);x++){let t=at(x,z);if(t&&!t.building){t.tree=false;t.mineral=0}}
+    faith[1]=120;aiStyle='villages';var ecologyChoice=aiEnvironmentChoice(1)`);
+  assert.ok(g.eval('ecologyChoice'));
+  assert.equal(g.eval("['grove','mineral'].includes(ecologyChoice.kind)"),true);
+  assert.equal(g.eval("environmentFeatureAllowed(ecologyChoice.kind,ecologyChoice.x,ecologyChoice.z)"),true);
+});
+
+test('Ember must move its shaman into range before creating an environmental feature',()=>{
+  const g=game(.217);
+  g.eval(`var emberShaman=people.find(p=>p.owner===1&&p.type==='shaman'),emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
+    var target=null;for(let z=1;z<H-1&&!target;z++)for(let x=W/2;x<W-1&&!target;x++){let t=at(x,z);if(groveAllowed(t)&&!sacredResourceBlocked(x,z)&&dist(emberShaman,{x,z})>5.5)target={kind:'grove',x,z}}
+    faith[1]=120;emberShaman.environmentGoal=target;var targetWasTree=at(target.x,target.z).tree;ai(.1)`);
+  assert.equal(g.eval('at(target.x,target.z).tree'),false,'the feature is not created remotely');
+  assert.equal(g.eval("emberShaman.job==='SEEKING GROVE SITE'"),true);
+  g.eval('emberShaman.x=target.x;emberShaman.z=target.z;emberShaman.goal=null;ai(.1)');
+  assert.equal(g.eval('at(target.x,target.z).tree'),true,'the grove appears once Ember reaches casting range');
+});
+
 test('player action set contains no direct labour-management commands',()=>{
   const g=game(.217);
   assert.equal(g.eval("commands.some(c=>['hut'].includes(c[0]))"),false);
