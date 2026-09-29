@@ -343,12 +343,12 @@ function environmentCandidate(kind,home){
  return best
 }
 function aiEnvironmentChoice(owner){
- let homes=buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1);if(!homes.length)return null;
+ let homes=buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1),sh=people.find(p=>p.owner===owner&&p.type==='shaman');if(!homes.length||!sh)return null;
  let options=[];
  for(let home of homes){let env=localEnvironment(home),unfinished=buildings.some(b=>b.owner===owner&&b.progress<1&&dist(b,home)<9),advanced=home.level>=2||homes.length>=3;
   let groveNeed=Math.max(0,(aiStyle==='villages'?7:5)-env.trees)+(unfinished?2:0),mineralNeed=advanced?Math.max(0,(aiStyle==='villages'?6:4)-env.minerals):0;
-  if(groveNeed>1&&faith[owner]>=GROVE_COST+24){let site=environmentCandidate('grove',home);if(site)options.push({...site,need:groveNeed,score:groveNeed*1.1-site.score*.08})}
-  if(mineralNeed>1&&faith[owner]>=MINERAL_COST+24){let site=environmentCandidate('mineral',home);if(site)options.push({...site,need:mineralNeed,score:mineralNeed*(aiStyle==='villages'?1:1.15)-site.score*.08})}
+  if(groveNeed>1&&faith[owner]>=GROVE_COST+24){let site=environmentCandidate('grove',home);if(site&&landRoute(sh,site))options.push({...site,need:groveNeed,score:groveNeed*1.1-site.score*.08})}
+  if(mineralNeed>1&&faith[owner]>=MINERAL_COST+24){let site=environmentCandidate('mineral',home);if(site&&landRoute(sh,site))options.push({...site,need:mineralNeed,score:mineralNeed*(aiStyle==='villages'?1:1.15)-site.score*.08})}
  }
  return options.sort((a,b)=>b.score-a.score)[0]||null
 }
