@@ -47,6 +47,15 @@ test('the larger world has reachable starts and five distributed sacred sites', 
   assert.ok(g.eval('CAMPS.every(camp=>shrines.every(site=>landRoute(camp,site)))'));
 });
 
+test('geology is fixed, mirrored and starts unexposed', () => {
+  for(const seed of [.043,.217,.999]){
+    const g=game(seed);
+    assert.equal(g.eval('tiles.some(t=>t.mineral>0)'),false,'no mineable seams begin exposed');
+    assert.ok(g.eval('tiles.some(t=>t.h>=4&&t.geology>0)'),'highlands contain mineral-bearing rock');
+    assert.equal(g.eval(`(()=>{for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z).geology!==at(W-1-x,z).geology)return false;return true})()`),true,'latent geology is mirrored between the two sides');
+  }
+});
+
 test('every generated world has mountains, hills, connected rivers and lakes', () => {
   for(const seed of [.043,.217,.999]){
     const g=game(seed);
@@ -314,11 +323,11 @@ test('Ember uses the same environmental placement rules and costs as the player'
   assert.equal(g.eval('at(groveSite.x,groveSite.z).tree'),true);
   assert.equal(g.eval('faith[1]'),before-g.eval('GROVE_COST'));
 
-  g.eval(`var mineralSite=null;for(let z=1;z<H-1&&!mineralSite;z++)for(let x=W/2;x<W-1&&!mineralSite;x++){let t=at(x,z);if(t&&t.h>=4&&!t.building&&!t.tree&&!sacredResourceBlocked(x,z))mineralSite={x,z}}
+  g.eval(`var mineralSite=null;for(let z=1;z<H-1&&!mineralSite;z++)for(let x=W/2;x<W-1&&!mineralSite;x++){let t=at(x,z);if(t&&t.h>=4&&t.geology>0&&!t.building&&!t.tree&&!sacredResourceBlocked(x,z))mineralSite={x,z}}
     emberShaman.x=mineralSite.x;emberShaman.z=mineralSite.z`);
   const mineralBefore=g.eval('faith[1]');
   assert.equal(g.eval("placeEnvironmentFeature('mineral',mineralSite.x,mineralSite.z,1)"),true);
-  assert.equal(g.eval('at(mineralSite.x,mineralSite.z).mineral'),4);
+  assert.equal(g.eval('at(mineralSite.x,mineralSite.z).mineral'),g.eval('at(mineralSite.x,mineralSite.z).geology'));
   assert.equal(g.eval('faith[1]'),mineralBefore-g.eval('MINERAL_COST'));
 });
 
@@ -351,30 +360,35 @@ test('player action set contains no direct labour-management commands',()=>{
   assert.equal(g.eval("spells.some(s=>s[0]==='mineral')"),true);
 });
 
-test('groves belong to low-mid land and minerals belong to high ground',()=>{
+test('groves use low-mid land while minerals require mineral-bearing high ground',()=>{
   const g=game(.217);
   const low=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=1&&t.h<=3&&!t.tree&&!t.mineral&&!t.building&&!shrines.some(s=>s.x===x&&s.z===z))return {x,z}}})()`);
-  const high=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.tree&&!t.mineral&&!t.building)return {x,z}}})()`);
-  assert.ok(low&&high);
+  const bearing=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&t.geology>0&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z))return {x,z}}})()`);
+  const barren=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.geology&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z))return {x,z}}})()`);
+  assert.ok(low&&bearing&&barren);
   assert.equal(g.eval(`groveAllowed(at(${low.x},${low.z}))`),true);
   assert.equal(g.eval(`mineralAllowed(at(${low.x},${low.z}))`),false);
-  assert.equal(g.eval(`mineralAllowed(at(${high.x},${high.z}))`),true);
-  assert.equal(g.eval(`groveAllowed(at(${high.x},${high.z}))`),false);
+  assert.equal(g.eval(`mineralAllowed(at(${bearing.x},${bearing.z}))`),true);
+  assert.equal(g.eval(`mineralAllowed(at(${barren.x},${barren.z}))`),false,'barren mountains cannot create ore');
 
   g.eval(`faith[0]=100;shaman.x=${low.x};shaman.z=${low.z};mode='grove';action(${low.x},${low.z})`);
   assert.equal(g.eval(`at(${low.x},${low.z}).tree`),true);
-  g.eval(`shaman.x=${high.x};shaman.z=${high.z};mode='mineral';action(${high.x},${high.z})`);
-  assert.equal(g.eval(`at(${high.x},${high.z}).mineral`),4);
+  const richness=g.eval(`at(${bearing.x},${bearing.z}).geology`);
+  g.eval(`shaman.x=${bearing.x};shaman.z=${bearing.z};mode='mineral';action(${bearing.x},${bearing.z})`);
+  assert.equal(g.eval(`at(${bearing.x},${bearing.z}).mineral`),richness,'the exposed seam size comes from latent geology');
 });
 
-test('sculpting across ecological height bands removes incompatible resources',()=>{
+test('sculpting changes access to geology without rewriting the underground vein',()=>{
   const g=game(.217);
-  g.eval(`var ecoTile=at(6,6);ecoTile.building=null;ecoTile.h=3;ecoTile.tree=true;ecoTile.mineral=0;terrainBrush(6,6,1,true,0)`);
+  g.eval(`var ecoTile=at(6,6);ecoTile.building=null;ecoTile.geology=4;ecoTile.h=3;ecoTile.tree=true;ecoTile.mineral=0;terrainBrush(6,6,1,true,0)`);
   assert.equal(g.eval('at(6,6).h'),4);
-  assert.equal(g.eval('at(6,6).tree'),false,'woodland disappears when raised into mineral country');
+  assert.equal(g.eval('at(6,6).tree'),false,'woodland disappears when raised into high country');
+  assert.equal(g.eval('at(6,6).geology'),4,'raising terrain does not invent or erase geology');
+  assert.equal(g.eval('mineralAllowed(at(6,6))'),true,'the existing vein becomes prospectable at height 4');
   g.eval(`at(6,6).mineral=4;terrainBrush(6,6,-1,true,0)`);
   assert.equal(g.eval('at(6,6).h'),3);
-  assert.equal(g.eval('at(6,6).mineral'),0,'mineral seam disappears when lowered below high ground');
+  assert.equal(g.eval('at(6,6).mineral'),0,'the exposed seam closes below high ground');
+  assert.equal(g.eval('at(6,6).geology'),4,'the latent vein remains underground');
 });
 
 test('local resource density changes the environmental pull around a settlement',()=>{
