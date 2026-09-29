@@ -75,3 +75,10 @@ test('environmental resource features distinguish latent geology from exposed se
  assert.match(source,/tile\.mineral=tile\.geology/);
  assert.match(source,/intent\.kind==='mine'\?t\.mineral>0/);
 });
+
+
+test('house inspect cards never contain the Build Stone action',()=>{
+ assert.match(source,/\$\{stone\?'<button data-site-action="build">BUILD STONE · 20<\/button>':''\}/);
+ assert.match(source,/panel\.querySelector\('\[data-site-note\]'\)/);
+ assert.doesNotMatch(source,/panel\.querySelector\('\[data-policy-details\]'\)/);
+});
