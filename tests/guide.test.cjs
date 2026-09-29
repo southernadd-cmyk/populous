@@ -35,3 +35,12 @@ test('inspect, toast and terrain status overlays have separate screen lanes', ()
   assert.match(css, /#toast\{[^}]*bottom:62px/);
   assert.match(css, /#landPreview\{[^}]*bottom:18px/);
 });
+
+
+test('opening guide is clearly branded as an alpha playtest', () => {
+  assert.match(html, /ALPHA BUILD/);
+  assert.match(html, /EARLY PLAYTEST · FIELD GUIDE/);
+  assert.match(html, /PLAY ALPHA/);
+  assert.match(html, /alpha build/);
+  assert.match(css, /\.alpha-badge/);
+});
