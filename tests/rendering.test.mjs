@@ -36,7 +36,7 @@ test('sloped terrain preserves logical tile centres and remains raycastable',()=
  const rand=(x,z,s)=>((Math.imul(x+17,1367)+Math.imul(z+11,769)+s*31)>>>0)%1000/1000;
  const clear=group=>{while(group.children.length){let child=group.children[0];group.remove(child);if(child.geometry)child.geometry.dispose();if(child.material?.dispose)child.material.dispose();if(child.isInstancedMesh)child.dispose()}};
  const mesh=(geo,material,parent,x,y,z,sx,sy,sz)=>{let item=new THREE.Mesh(geo,material);item.position.set(x,y,z);item.scale.set(sx,sy,sz);parent.add(item);return item};
- const context=vm.createContext({THREE,W,H,seed,tiles,at,height,rand,clear,mesh,terrain,terrainMarks,objects,box,sphere,cyl,cone,ringGeo,roofGeo,clamp,
+ const context=vm.createContext({THREE,W,H,seed,TREE_TIMBER_MAX:2,tiles,at,height,rand,clear,mesh,terrain,terrainMarks,objects,box,sphere,cyl,cone,ringGeo,roofGeo,clamp,
   landMats:[null,...Array.from({length:5},(_,i)=>mat(0x617e59+i*0x050505))],sideMats:[null,...Array.from({length:5},()=>mat(0x4a6250))],
   stoneMat:mat(0xc0ad83),terraceGold:mat(0xd1bd7b),terraceRough:mat(0xb17b68),pebbleMat:mat(0xffffff),trunkMat:mat(0x654c38),leafMats:[mat(0x294e3c),mat(0x38664a),mat(0x54825a)],
   shrines:[],buildings:[],renderStone(){},renderBuilding(){},terraceScore:()=>0,
@@ -81,4 +81,13 @@ test('house inspect cards never contain the Build Stone action',()=>{
  assert.match(source,/\$\{stone\?'<button data-site-action="build">BUILD STONE · 20<\/button>':''\}/);
  assert.match(source,/panel\.querySelector\('\[data-site-note\]'\)/);
  assert.doesNotMatch(source,/panel\.querySelector\('\[data-policy-details\]'\)/);
+});
+
+
+test('grove preview and rendering expose woodland state',()=>{
+ assert.match(source,/function groveFootprint\(x,z\)/);
+ assert.match(source,/function takeTimber\(x,z\)/);
+ assert.match(source,/function updateWoodland\(\)/);
+ assert.match(source,/mode==='grove'\?groveFootprint\(x,z\):\[\]/);
+ assert.match(source,/maturity=\.7\+\.15\*clamp\(t\.wood\|\|1,1,TREE_TIMBER_MAX\)/);
 });
