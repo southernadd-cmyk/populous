@@ -131,7 +131,8 @@ test('spare followers can hunt, mine and explore away from the village', () => {
     var roamingWorker=people.find(p=>p.owner===0&&p.type==='brave');
     roamingWorker.intent=null;roamingWorker.workSite=null;roamingWorker.supportSite=null;`);
   assert.ok(g.eval("ambientTarget(roamingWorker,'hunt')"), 'woodland provides a hunting destination');
-  assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'high ground provides a mining destination');
+  g.eval("for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){let t=at(x,z);if(t.h&&!t.tree&&!t.building&&dist({x,z},roamingWorker)>3&&dist({x,z},roamingWorker)<15){t.mineral=4;break}}");
+  assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'a mineral seam provides a mining destination');
   assert.ok(g.eval("ambientTarget(roamingWorker,'explore')"), 'distant land provides an exploration destination');
   assert.equal(g.eval("['hunt','mine','explore'].every(kind=>validWorkerIntent({kind,site:ambientTarget(roamingWorker,kind)},0))"), true);
 });
@@ -195,47 +196,49 @@ test('a bare sacred site requires one shaped tile, a 2×2 foundation and actual 
   assert.ok(g.eval('devotionRate(0)>0'));
 });
 
-test('Worship allocates followers; Guard slows a contested stone conversion', () => {
+test('sacred terrain attracts worshippers and threats attract guards automatically', () => {
   const g = game(.217);
-  g.eval(`finishedStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0)`);
-  assert.equal(g.eval('people.filter(p=>p.worshipSite===shrines[0]).length'), 2);
-  assert.ok(g.eval("people.filter(p=>p.owner===0&&p.role==='worker').length>=3"));
-  g.eval(`shrines[0].policy='guard';syncSitePolicies(0)`);
-  assert.equal(g.eval('people.filter(p=>p.guardSite===shrines[0]).length'), 1);
-  assert.equal(g.eval('people.filter(p=>p.worshipSite===shrines[0]).length'), 1);
-  const guardDelta = g.eval(`(()=>{let site=shrines[0],guard=people.find(p=>p.guardSite===site),rival=people.find(p=>p.owner===1&&p.type==='shaman');guard.x=site.x+.7;guard.z=site.z;rival.x=site.x;rival.z=site.z;site.spirit=60;updateStoneSpirit(site,1);return site.spirit-60})()`);
-  const growDelta = g.eval(`(()=>{let site=shrines[0];site.policy='grow';syncSitePolicies(0);site.spirit=60;updateStoneSpirit(site,1);return site.spirit-60})()`);
-  assert.ok(guardDelta > growDelta + 4);
-});
-
-test('one festival starts a tribe-wide cooldown across sites', () => {
-  const g = game(.217);
-  g.eval(`finishedStone(shrines[0],0);shrines[0].policy='worship';syncSitePolicies(0);
-    shrines[0].belief=70;for(let p of people.filter(p=>p.worshipSite===shrines[0])){p.x=shrines[0].x+.2;p.z=shrines[0].z}
+  g.eval(`finishedStone(shrines[0],0);
     let edit;while(terraceScore(shrines[0])<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(shrines[0])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
-    faith[0]=100;festival(shrines[0])`);
-  assert.ok(g.eval('devotion[0]>0'));
-  assert.ok(g.eval('nextFestivalAt[0]>elapsed'));
-  assert.equal(g.eval("regionalVows[0].has('North')"),true);
-  g.eval(`finishedStone(shrines[1],0);addPerson(0,shrines[1].x,shrines[1].z,'brave');addPerson(0,shrines[1].x,shrines[1].z,'brave');
-    shrines[1].policy='worship';syncSitePolicies(0);shrines[1].belief=80;
-    for(let p of people.filter(p=>p.worshipSite===shrines[1])){p.x=shrines[1].x+.2;p.z=shrines[1].z}
-    faith[0]=100`);
-  assert.equal(g.eval('festivalReady(shrines[1])'), false);
+    for(let i=0;i<5;i++)addPerson(0,shrines[0].x+2,shrines[0].z,'brave');
+    syncSitePolicies(0)`);
+  assert.equal(g.eval('people.filter(p=>p.worshipSite===shrines[0]).length'),2,'a seven-tile terrace attracts festival worshippers');
+  g.eval(`var rival=people.find(p=>p.owner===1&&p.type==='shaman');rival.x=shrines[0].x;rival.z=shrines[0].z;shrines[0].spirit=60;syncSitePolicies(0)`);
+  assert.equal(g.eval('people.filter(p=>p.guardSite===shrines[0]).length'),1,'a nearby rival attracts a keeper');
+  g.eval(`rival.x=shrines[0].x+12;rival.z=shrines[0].z;syncSitePolicies(0)`);
+  assert.equal(g.eval('people.filter(p=>p.guardSite===shrines[0]).length'),0,'the keeper returns to work when the threat leaves');
 });
 
-test('devotion alone cannot end the contest; each distinct region needs its own prepared festival', () => {
+test('prepared sacred terrain can trigger a festival and starts a tribe-wide cooldown', () => {
+  const g = game(.217);
+  g.eval(`finishedStone(shrines[0],0);shrines[0].belief=80;
+    for(let i=0;i<6;i++)addPerson(0,shrines[0].x+2,shrines[0].z,'brave');
+    let edit;while(terraceScore(shrines[0])<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(shrines[0])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    syncSitePolicies(0);for(let p of people.filter(p=>p.worshipSite===shrines[0])){p.x=shrines[0].x+.2;p.z=shrines[0].z}
+    faith[0]=100;riteClock=4;ai(.1)`);
+  assert.equal(g.eval("regionalVows[0].has('North')"),true);
+  assert.ok(g.eval('nextFestivalAt[0]>elapsed'));
+
+  g.eval(`finishedStone(shrines[1],0);shrines[1].belief=90;
+    let edit;while(terraceScore(shrines[1])<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(shrines[1])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    syncSitePolicies(0);for(let p of people.filter(p=>p.worshipSite===shrines[1])){p.x=shrines[1].x+.2;p.z=shrines[1].z}`);
+  assert.equal(g.eval('festivalReady(shrines[1])'),false,'the tribe-wide cooldown blocks another immediate celebration');
+});
+
+test('devotion alone cannot end the contest; each distinct region still needs prepared land', () => {
   const g=game(.217);
   g.eval('devotion[0]=DEVOTION_GOAL+500;ai(.1)');
   assert.equal(g.eval('ended'),'');
-  g.eval(`for(let site of [shrines[0],shrines[1],shrines[2]]){
-    finishedStone(site,0);site.policy='worship';site.belief=90;
-    let edit;while(terraceScore(site)<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(site)))terrainBrush(edit.x,edit.z,edit.dir,true,0);
-    addPerson(0,site.x,site.z,'brave');addPerson(0,site.x,site.z,'brave');
-  }syncSitePolicies(0);for(let site of [shrines[0],shrines[1],shrines[2]])for(let p of people.filter(p=>p.worshipSite===site)){p.x=site.x+.2;p.z=site.z}`);
+  g.eval(`for(let i=0;i<10;i++)addPerson(0,shrines[2].x,shrines[2].z,'brave');
+    for(let site of [shrines[0],shrines[1],shrines[2]]){
+      finishedStone(site,0);site.belief=90;
+      let edit;while(terraceScore(site)<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(site)))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    }
+    syncSitePolicies(0);
+    for(let site of [shrines[0],shrines[1],shrines[2]])for(let p of people.filter(p=>p.worshipSite===site)){p.x=site.x+.2;p.z=site.z}`);
   assert.equal(g.eval('festivalReady(shrines[0])'),true);
-  g.eval('faith[0]=160;festival(shrines[0]);nextFestivalAt[0]=0;shrines[0].festivalUntil=0;shrines[0].belief=90;faith[0]=160;festival(shrines[0])');
-  assert.equal(g.eval('regionalVows[0].size'),1,'repeating a festival does not satisfy a second region');
+  g.eval('faith[0]=160;festival(shrines[0]);nextFestivalAt[0]=0;shrines[0].festivalUntil=0;faith[0]=160;festival(shrines[0])');
+  assert.equal(g.eval('regionalVows[0].size'),1);
   g.eval('nextFestivalAt[0]=0;faith[0]=160;festival(shrines[1]);nextFestivalAt[0]=0;faith[0]=160;festival(shrines[2])');
   assert.equal(g.eval('regionalVows[0].size'),3);
   assert.equal(g.eval('victoryReady(0)'),true);
@@ -288,9 +291,6 @@ test('an occupied hut grows in stages only after land, births and maturity miles
   assert.equal(g.eval('terrainBrush(13,25,1).changed'), 0);
   assert.equal(g.eval('housingCapacity(0)'), firstCapacity + 12);
   assert.ok(g.eval('siteDevotion(home)') > houseDevotion);
-  g.eval(`home.blessed=false;mode='bless';faith[0]=100;action(13,25)`);
-  assert.equal(g.eval('home.blessed'), true, 'the castle can be blessed from its outer footprint');
-
   const blocked = game(.217);
   blocked.eval(`var home=at(12,24).building;home.progress=1;home.completedAt=0;home.born=10;
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(dx||dz){let tile=at(12+dx,24+dz);tile.h=2;tile.tree=false}
@@ -299,59 +299,30 @@ test('an occupied hut grows in stages only after land, births and maturity miles
   assert.equal(blocked.eval('at(13,25).building===neighbour'), true);
 });
 
-const villagePlan = `{
-  let route=[[15,22],[17,26],[21,24],[25,24],[28,24]],sites=route.map(([x,z])=>buildings.find(b=>b.owner===0&&b.x===x&&b.z===z));
-  let ready=buildings.find(b=>b.owner===0&&faithRegion(b)&&!regionalVows[0].has(faithRegion(b))&&festivalReady(b));
-  if(ready&&faith[0]>=FESTIVAL_COST)festival(ready);
-  for(let b of buildings.filter(b=>b.owner===0&&b.blessed&&b.progress===1&&faithRegion(b))){let required=faithRegion(b)==='Crossing'?3:2;if(b.level>=required&&b.policy!=='worship'){b.policy='worship';syncSitePolicies(0)}}
-  let unfinished=route.findIndex((point,i)=>!sites[i]);if(unfinished>=0){let [x,z]=route[unfinished];if(plotAt(x,z,0)){mode='hut';action(x,z)}}
-  let unblessed=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1&&!b.blessed);
-  if(unblessed&&faith[0]>=30){if(dist(shaman,unblessed)>5.5)shaman.goal={x:unblessed.x,z:unblessed.z};else{mode='bless';action(unblessed.x,unblessed.z)}}
-  else if(faith[0]>=4){let home=sites.find(b=>b?.progress===1&&faithRegion(b)&&b.level<(faithRegion(b)==='Crossing'?3:2));if(home){let edit=null,level=height(home.x,home.z);for(let dz=-1;dz<=1&&!edit;dz++)for(let dx=-1;dx<=1&&!edit;dx++)if(dx||dz){let x=home.x+dx,z=home.z+dz,t=at(x,z),dir=Math.sign(level-t.h);if(dir&&terrainBrush(x,z,dir).changed)edit={x,z,dir}}if(edit){if(dist(shaman,edit)>5.5)shaman.goal={x:home.x,z:home.z};else{mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
-  }
-}`;
-
-const stonePlan = `{
-  let owned=shrines.filter(s=>s.owner===0),enemy=people.find(p=>p.owner===1&&p.type==='shaman');
-  for(let site of owned)site.policy=dist(enemy,site)<3?'guard':'worship';syncSitePolicies(0);
-  if(faith[0]>=FESTIVAL_COST){let ready=owned.find(s=>!regionalVows[0].has(faithRegion(s))&&festivalReady(s));if(ready)festival(ready)}
-  let target=owned.find(s=>!regionalVows[0].has(faithRegion(s))&&terraceScore(s)<STONE_RITE_TERRACE)
-    ||shrines.find(s=>!regionalVows[0].has(faithRegion(s))&&s.owner===2&&s.projectOwner===2)
-    ||shrines.find(s=>!regionalVows[0].has(faithRegion(s))&&s.owner===1);
-  if(target){
-    if(target.owner===0){if(dist(shaman,target)>4.4)shaman.goal={x:target.x,z:target.z};else if(faith[0]>=4){let edit=bestTerraceBrush(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
-    else if(dist(shaman,target)>(target.owner===2?2.8:1.1))shaman.goal={x:target.x,z:target.z};
-    else if(target.owner===1&&faith[0]>=45){mode='ritual';action(target.x,target.z)}
-    else if(target.owner===2){let plot=stoneCandidate(target);if(plot&&faith[0]>=STONE_COST){mode='stone';action(plot.x,plot.z)}else if(!plot&&faith[0]>=4){let edit=stonePreparation(target);if(edit){mode=edit.dir>0?'raise':'lower';action(edit.x,edit.z)}}}
-  }
-}`;
-
-test('stone plan reaches all regional festivals against both rival styles', () => {
-  for (const seed of [.043, .217]) {
-    const g = game(seed);
-    let firstThree=null;
-    for (let t = 0; t < 400 && !g.eval('ended'); t++) {
-      if (t % 3 === 0) g.eval(stonePlan);
-      g.advance(1);
-      if(!firstThree&&g.eval('regionalVows[0].size===3'))firstThree=[t,Math.floor(g.eval('devotion[0]'))];
-    }
-    assert.equal(g.eval('ended'), 'victory', `stone plan failed on seed ${seed}: ${g.eval('devotion.map(Math.floor)')}`);
-    assert.equal(g.eval('regionalVows[0].size'),3);
-    assert.ok(firstThree&&g.eval('elapsed')-firstThree[0]<40,'the score should follow the active third festival without a long passive wait');
-    assert.ok(g.eval('elapsed')>=160&&g.eval('elapsed')<260);
-  }
+test('player action set contains no direct labour-management commands',()=>{
+  const g=game(.217);
+  assert.equal(g.eval("commands.some(c=>['hut'].includes(c[0]))"),false);
+  assert.equal(g.eval("spells.some(s=>['convert','bless','ritual'].includes(s[0]))"),false);
+  assert.equal(g.eval("spells.some(s=>s[0]==='grove')"),true);
+  assert.equal(g.eval("spells.some(s=>s[0]==='mineral')"),true);
 });
 
-test('village plan reaches all regional festivals against both rival styles', () => {
-  for(const seed of [.043,.217]){
-    const g=game(seed);
-    for(let t=0;t<420&&!g.eval('ended');t++){
-      if(t%3===0)g.eval(villagePlan);
-      g.advance(1);
-    }
-    assert.equal(g.eval('ended'),'victory',`village plan failed on seed ${seed}: ${g.eval('devotion.map(Math.floor)')} ${g.eval('regionalVows.map(s=>[...s])')}`);
-    assert.equal(g.eval('regionalVows[0].size'),3);
-    assert.equal(g.eval('shrines.filter(s=>s.owner===0).length'),0,'villages can complete the map without stone circles');
-    assert.ok(g.eval('elapsed')>=160&&g.eval('elapsed')<260);
-  }
+test('planting groves and exposing minerals change worker opportunities on the map',()=>{
+  const g=game(.217);
+  const point=g.eval(`(()=>{for(let z=3;z<H-3;z++)for(let x=3;x<W/2;x++){let t=at(x,z);if(t.h&&!t.tree&&!t.mineral&&!t.building&&dist(shaman,{x,z})<5)return {x,z}}})()`);
+  assert.ok(point);
+  g.eval(`faith[0]=100;mode='grove';action(${point.x},${point.z})`);
+  assert.equal(g.eval(`at(${point.x},${point.z}).tree`),true);
+  g.eval(`at(${point.x},${point.z}).tree=false;mode='mineral';action(${point.x},${point.z})`);
+  assert.equal(g.eval(`at(${point.x},${point.z}).mineral`),4);
 });
+
+test('useful level ground is enough for settlers to plan homes without a player build order',()=>{
+  const g=game(.217);
+  const plan=g.eval(`(()=>{for(let z=3;z<H-3;z++)for(let x=2;x<W/2;x++)if(dist(shaman,{x,z})<5.5)for(let dir of [-1,1]){let result=terrainBrush(x,z,dir);if(result.newPlot)return {x,z,dir,plot:result.newPlot}}})()`);
+  assert.ok(plan);
+  const before=g.eval('buildings.length');
+  g.eval(`mode='${plan.dir>0?'raise':'lower'}';action(${plan.x},${plan.z});settlementClock=4;ai(.1)`);
+  assert.ok(g.eval('buildings.length')>before);
+});
+
