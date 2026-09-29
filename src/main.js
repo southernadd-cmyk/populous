@@ -377,8 +377,8 @@ function chooseWorkerIntent(p){
  let projects=[...buildings.filter(b=>activeProject(b,owner)),...shrines.filter(s=>activeProject(s,owner))];
  if(p.carry){let hut=buildings.includes(p.workSite)&&activeProject(p.workSite,owner)?p.workSite:nearest(projects.filter(b=>buildings.includes(b)),p);if(hut)return {kind:'build',site:hut,score:1}}
  for(let site of projects){let assigned=people.filter(q=>q!==p&&q.owner===owner&&q.role==='worker'&&q.workSite===site).length;if(assigned>=3)continue;
-  let near=fuzzyNear(dist(p,site)),free=1-fuzzyHigh(assigned,1,3),stone=shrines.includes(site),rival=people.find(q=>q.owner===1-owner&&q.type==='shaman'),pressure=stone?Math.max(.7,rival?fuzzyNear(dist(rival,site),1,6):0):housingPressure;
-  offer('build',site,.6+.12*near+.15*pressure+.12*free+.04*(1-site.progress)+(p.workSite===site?.1:0))
+  let near=fuzzyNear(dist(p,site)),free=1-fuzzyHigh(assigned,1,3),stone=shrines.includes(site),rival=people.find(q=>q.owner===1-owner&&q.type==='shaman'),pressure=stone?Math.max(.7,rival?fuzzyNear(dist(rival,site),1,6):0):housingPressure,timber=stone?0:Math.min(1,localEnvironment(site,9).trees/5);
+  offer('build',site,.6+.12*near+.15*pressure+.12*free+.04*(1-site.progress)+timber*.06+(p.workSite===site?.1:0))
  }
  for(let site of [...shrines,...buildings].filter(s=>validWorshipSite(s,owner))){
   let lowBelief=1-fuzzyHigh(siteBelief(site),35,85),near=fuzzyNear(dist(p,site)),needs=siteNeeds(site,owner),shortage=1-fuzzyHigh(needs.workers,0,2);
@@ -392,11 +392,11 @@ function chooseWorkerIntent(p){
  let workers=people.filter(q=>q.owner===owner&&q.type==='brave'&&q.role==='worker').length,
      home=nearest(buildings.filter(b=>b.owner===owner&&b.type==='hut'&&b.progress===1),p)||nearest(buildings.filter(b=>b.owner===owner&&b.progress===1),p),
      localWorkers=home?people.filter(q=>q.owner===owner&&q.type==='brave'&&q.role==='worker'&&dist(q,home)<10).length:workers,
-     localAmbient=home?people.filter(q=>q.owner===owner&&['hunt','mine','explore'].includes(q.intent?.kind)&&q.intent.site&&dist(q.intent.site,home)<15).length:0,
+     localAmbient=home?people.filter(q=>q.owner===owner&&(['hunt','mine','explore'].includes(q.intent?.kind)&&q.intent.site&&dist(q.intent.site,home)<15||q.ambientReturn&&q.ambientHome===home)).length:0,
      maxAmbient=Math.max(1,Math.floor(localWorkers*.5));
  if(localWorkers>=4&&localAmbient<maxAmbient){
   let env=localEnvironment(home||p),pulls={hunt:env.hunt,mine:env.mine,explore:env.explore},total=Object.values(pulls).reduce((a,b)=>a+b,0)||1;
-  for(let kind of ['hunt','mine','explore']){let pull=pulls[kind];if(pull<.08)continue;let active=home?people.filter(q=>q.owner===owner&&q.intent?.kind===kind&&q.intent.site&&dist(q.intent.site,home)<15).length:0,targetCount=Math.max(1,Math.round(maxAmbient*pull/total));if(active>=targetCount)continue;let target=ambientTarget(p,kind);if(target){let saturation=active/targetCount;offer(kind,target,.24+Math.min(1.5,pull)*.18+fuzzyNear(dist(p,target),3,15)*.06-saturation*.05)}}
+  for(let kind of ['hunt','mine','explore']){let pull=pulls[kind];if(pull<.08)continue;let active=home?people.filter(q=>q.owner===owner&&(q.intent?.kind===kind&&q.intent.site&&dist(q.intent.site,home)<15||q.ambientReturn===kind&&q.ambientHome===home)).length:0,targetCount=Math.max(1,Math.round(maxAmbient*pull/total));if(active>=targetCount)continue;let target=ambientTarget(p,kind);if(target){let saturation=active/targetCount;offer(kind,target,.24+Math.min(1.5,pull)*.18+fuzzyNear(dist(p,target),3,15)*.06-saturation*.05)}}
  }
  return best
 }
