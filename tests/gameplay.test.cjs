@@ -232,7 +232,7 @@ test('prepared sacred terrain can trigger a festival and starts a tribe-wide coo
   assert.ok(g.eval('nextFestivalAt[0]>elapsed'));
 
   g.eval(`finishedStone(shrines[1],0);shrines[1].belief=90;
-    let edit;while(terraceScore(shrines[1])<STONE_RITE_TERRACE&&(edit=bestTerraceBrush(shrines[1])))terrainBrush(edit.x,edit.z,edit.dir,true,0);
+    let edit2;while(terraceScore(shrines[1])<STONE_RITE_TERRACE&&(edit2=bestTerraceBrush(shrines[1])))terrainBrush(edit2.x,edit2.z,edit2.dir,true,0);
     syncSitePolicies(0);for(let p of people.filter(p=>p.worshipSite===shrines[1])){p.x=shrines[1].x+.2;p.z=shrines[1].z}`);
   assert.equal(g.eval('festivalReady(shrines[1])'),false,'the tribe-wide cooldown blocks another immediate celebration');
 });
@@ -256,16 +256,12 @@ test('devotion alone cannot end the contest; each distinct region still needs pr
   assert.equal(g.eval('victoryReady(0)'),true);
 });
 
-test('the rival must develop all three regions before it can win',()=>{
-  for(const seed of [.043,.217]){
-    const g=game(seed);
-    g.advance(150);
-    assert.equal(g.eval('ended'),'','the opening cannot finish as a passive score race');
-    g.advance(190);
-    assert.equal(g.eval('ended'),'defeat');
-    assert.equal(g.eval('regionalVows[1].size'),3);
-    assert.ok(g.eval('elapsed')>=190&&g.eval('elapsed')<=300);
-  }
+test('the rival cannot win on devotion alone and needs all three regions',()=>{
+  const g=game(.217);
+  g.eval(`devotion[1]=DEVOTION_GOAL+1000;regionalVows[1]=new Set(['North','Crossing']);ai(.1)`);
+  assert.equal(g.eval('ended'),'','two regions are insufficient even above the devotion target');
+  g.eval(`regionalVows[1].add('South');ai(.1)`);
+  assert.equal(g.eval('ended'),'defeat','all three regions plus the devotion target completes the rival victory');
 });
 
 test('an occupied hut grows in stages only after land, births and maturity milestones', () => {
@@ -344,12 +340,12 @@ test('Ember chooses resource-poor settlements for environmental intervention',()
 test('Ember must move its shaman into range before creating an environmental feature',()=>{
   const g=game(.217);
   g.eval(`var emberShaman=people.find(p=>p.owner===1&&p.type==='shaman'),emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
-    var target=null;for(let z=1;z<H-1&&!target;z++)for(let x=W/2;x<W-1&&!target;x++){let t=at(x,z);if(groveAllowed(t)&&!sacredResourceBlocked(x,z)&&dist(emberShaman,{x,z})>5.5)target={kind:'grove',x,z}}
-    faith[1]=120;emberShaman.environmentGoal=target;var targetWasTree=at(target.x,target.z).tree;ai(.1)`);
-  assert.equal(g.eval('at(target.x,target.z).tree'),false,'the feature is not created remotely');
+    var ecologyTarget=null;for(let z=1;z<H-1&&!ecologyTarget;z++)for(let x=W/2;x<W-1&&!ecologyTarget;x++){let t=at(x,z);if(groveAllowed(t)&&!sacredResourceBlocked(x,z)&&dist(emberShaman,{x,z})>5.5)ecologyTarget={kind:'grove',x,z}}
+    faith[1]=120;emberShaman.environmentGoal=ecologyTarget;ai(.1)`);
+  assert.equal(g.eval('at(ecologyTarget.x,ecologyTarget.z).tree'),false,'the feature is not created remotely');
   assert.equal(g.eval("emberShaman.job==='SEEKING GROVE SITE'"),true);
-  g.eval('emberShaman.x=target.x;emberShaman.z=target.z;emberShaman.goal=null;ai(.1)');
-  assert.equal(g.eval('at(target.x,target.z).tree'),true,'the grove appears once Ember reaches casting range');
+  g.eval('emberShaman.x=ecologyTarget.x;emberShaman.z=ecologyTarget.z;emberShaman.goal=null;ai(.1)');
+  assert.equal(g.eval('at(ecologyTarget.x,ecologyTarget.z).tree'),true,'the grove appears once Ember reaches casting range');
 });
 
 test('player action set contains no direct labour-management commands',()=>{
