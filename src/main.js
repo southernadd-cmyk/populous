@@ -334,12 +334,23 @@ function syncSitePolicies(owner){
 function groveAllowed(tile){return !!tile&&tile.h>=1&&tile.h<=3&&!tile.building&&!tile.tree&&!tile.mineral}
 function mineralAllowed(tile){return !!tile&&tile.h>=4&&tile.geology>0&&!tile.building&&!tile.tree&&!tile.mineral}
 function sacredResourceBlocked(x,z){return shrines.some(s=>s.x===x&&s.z===z||stoneFootprint(s,x,z))}
-function environmentFeatureAllowed(kind,x,z){let tile=at(x,z);return !sacredResourceBlocked(x,z)&&(kind==='grove'?groveAllowed(tile):kind==='mineral'?mineralAllowed(tile):false)}
+function groveFootprint(x,z){return GROVE_OFFSETS.map(([dx,dz])=>({x:x+dx,z:z+dz})).filter(p=>groveAllowed(at(p.x,p.z))&&!sacredResourceBlocked(p.x,p.z))}
+function environmentFeatureAllowed(kind,x,z){let tile=at(x,z);return kind==='grove'?groveAllowed(tile)&&!sacredResourceBlocked(x,z)&&groveFootprint(x,z).length>=3:kind==='mineral'?!sacredResourceBlocked(x,z)&&mineralAllowed(tile):false}
 function environmentFeatureCost(kind){return kind==='grove'?GROVE_COST:kind==='mineral'?MINERAL_COST:Infinity}
+function plantGrove(x,z){let planted=groveFootprint(x,z);for(let p of planted){let tile=at(p.x,p.z);tile.tree=true;tile.wood=TREE_TIMBER_MAX;tile.regrowAt=0}return planted}
+function woodlandNeighbours(x,z,radius=2){let n=0;for(let dz=-radius;dz<=radius;dz++)for(let dx=-radius;dx<=radius;dx++){if(!dx&&!dz)continue;if(at(x+dx,z+dz)?.tree)n++}return n}
+function updateWoodland(){
+ let changed=false,phase=Math.floor(elapsed/15);
+ for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){let tile=at(x,z),neighbours=woodlandNeighbours(x,z);
+  if(tile.tree){if(tile.h>=1&&tile.h<=3&&(tile.wood||0)<TREE_TIMBER_MAX&&neighbours>=2&&rand(x,z,seed+401+phase)>.68){tile.wood=Math.min(TREE_TIMBER_MAX,(tile.wood||0)+1);changed=true}}
+  else if(tile.regrowAt&&elapsed>=tile.regrowAt){if(groveAllowed(tile)&&!sacredResourceBlocked(x,z)&&neighbours>=2){tile.tree=true;tile.wood=1;tile.regrowAt=0;changed=true}else tile.regrowAt=elapsed+25}
+ }
+ if(changed)renderObjects()
+}
 function placeEnvironmentFeature(kind,x,z,owner){
  let sh=people.find(p=>p.owner===owner&&p.type==='shaman'),cost=environmentFeatureCost(kind);if(!sh||faith[owner]<cost||dist(sh,{x,z})>5.5||!environmentFeatureAllowed(kind,x,z))return false;
- let tile=at(x,z);if(kind==='grove')tile.tree=true;else tile.mineral=tile.geology;faith[owner]-=cost;renderObjects();
- log(owner===0?(kind==='grove'?'A new grove takes root. Hunters and builders will be drawn to its trees.':'A mineral seam is exposed. Miners will begin working it when free.'):(kind==='grove'?'Ember planted woodland to draw hunters and supply timber.':'Ember exposed a mineral seam to draw miners.'));
+ let tile=at(x,z),planted=null;if(kind==='grove')planted=plantGrove(x,z);else tile.mineral=tile.geology;faith[owner]-=cost;renderObjects();
+ log(owner===0?(kind==='grove'?'A grove of '+planted.length+' trees takes root. It supplies finite timber and hunting cover.':'A mineral seam is exposed. Miners will begin working it when free.'):(kind==='grove'?'Ember planted a grove of '+planted.length+' trees.':'Ember exposed a mineral seam to draw miners.'));
  return true
 }
 function environmentCandidate(kind,home){
@@ -362,15 +373,15 @@ function aiEnvironmentChoice(owner){
  return options.sort((a,b)=>b.score-a.score)[0]||null
 }
 function localEnvironment(anchor,radius=11){
- let trees=0,minerals=0,open=0;
+ let trees=0,timber=0,minerals=0,open=0;
  for(let z=Math.max(1,Math.floor(anchor.z-radius));z<=Math.min(H-2,Math.ceil(anchor.z+radius));z++)for(let x=Math.max(1,Math.floor(anchor.x-radius));x<=Math.min(W-2,Math.ceil(anchor.x+radius));x++){
   let tile=at(x,z),d=dist(anchor,{x,z});if(!tile?.h||d>radius)continue;
   let weight=1-d/(radius+2)*.45;
-  if(tile.tree)trees+=weight;
+  if(tile.tree){trees+=weight;timber+=(tile.wood||1)*weight}
   if(tile.mineral)minerals+=tile.mineral*weight;
   if(d>=6&&!tile.tree&&!tile.mineral&&!tile.building&&!shrines.some(s=>s.x===x&&s.z===z))open+=weight
  }
- return {trees,minerals,open,hunt:clamp(trees/7,0,1.5),mine:clamp(minerals/9,0,1.5),explore:clamp(open/34,0,1.3)}
+ return {trees,timber,minerals,open,hunt:clamp(trees/7,0,1.5),mine:clamp(minerals/9,0,1.5),explore:clamp(open/34,0,1.3)}
 }
 function resourceCluster(kind,x,z){
  let amount=0;
@@ -414,7 +425,7 @@ function chooseWorkerIntent(p){
  let projects=[...buildings.filter(b=>activeProject(b,owner)),...shrines.filter(s=>activeProject(s,owner))];
  if(p.carry){let hut=buildings.includes(p.workSite)&&activeProject(p.workSite,owner)?p.workSite:nearest(projects.filter(b=>buildings.includes(b)),p);if(hut)return {kind:'build',site:hut,score:1}}
  for(let site of projects){let assigned=people.filter(q=>q!==p&&q.owner===owner&&q.role==='worker'&&q.workSite===site).length;if(assigned>=3)continue;
-  let near=fuzzyNear(dist(p,site)),free=1-fuzzyHigh(assigned,1,3),stone=shrines.includes(site),rival=people.find(q=>q.owner===1-owner&&q.type==='shaman'),pressure=stone?Math.max(.7,rival?fuzzyNear(dist(rival,site),1,6):0):housingPressure,timber=stone?0:Math.min(1,localEnvironment(site,9).trees/5);
+  let near=fuzzyNear(dist(p,site)),free=1-fuzzyHigh(assigned,1,3),stone=shrines.includes(site),rival=people.find(q=>q.owner===1-owner&&q.type==='shaman'),pressure=stone?Math.max(.7,rival?fuzzyNear(dist(rival,site),1,6):0):housingPressure,timber=stone?0:Math.min(1,localEnvironment(site,9).timber/8);
   offer('build',site,.6+.12*near+.15*pressure+.12*free+.04*(1-site.progress)+timber*.06+(p.workSite===site?.1:0))
  }
  for(let site of [...shrines,...buildings].filter(s=>validWorshipSite(s,owner))){
