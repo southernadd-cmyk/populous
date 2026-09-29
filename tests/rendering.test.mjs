@@ -66,9 +66,12 @@ test('sloped terrain preserves logical tile centres and remains raycastable',()=
 });
 
 
-test('environmental resource features are rendered and exposed as player powers',()=>{
+test('environmental resource features distinguish latent geology from exposed seams',()=>{
  assert.match(source,/PLANT GROVE/);
  assert.match(source,/EXPOSE MINERALS/);
- assert.match(source,/if\(!t\.mineral\|\|!t\.h\)continue/);
+ assert.match(source,/function geologyAt\(x,z\)/);
+ assert.match(source,/tile\.geology>0/);
+ assert.match(source,/else if\(t\.h>=4&&t\.geology\)/);
+ assert.match(source,/tile\.mineral=tile\.geology/);
  assert.match(source,/intent\.kind==='mine'\?t\.mineral>0/);
 });
