@@ -9,8 +9,8 @@
 
 #objective em{font-style:normal;font-weight:700}#objective .verdant{color:#8fffe1}#objective .ember{color:#ffac83}
 #landPreview{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);max-width:min(420px,55%);padding:8px 11px;background:#173533ec;border:1px solid #8ce0bd;border-radius:8px;color:#e7f6e7;font-size:12px;text-align:center;pointer-events:none;z-index:2}#landPreview[hidden]{display:none}
-#sitePanel{max-height:calc(100% - 150px);overflow:auto}#sitePanel .site-policies{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}#sitePanel .site-policies button{text-align:center}#sitePanel .site-policies button.active{background:#567659;border-color:#d6e09a;color:#fff8d3}#sitePanel .site-actions{display:flex;gap:5px;justify-content:space-between}#sitePanel [data-policy-details]{color:#c7dbca}
-#sitePanel .site-policies[hidden],#sitePanel [data-policy-details][hidden],#sitePanel .site-actions button[hidden]{display:none}@media(max-width:1280px){#hint{display:none}footer{gap:10px}}
+#sitePanel{max-height:calc(100% - 150px);overflow:auto}#sitePanel .site-policies{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}#sitePanel .site-policies button{text-align:center}#sitePanel .site-policies button.active{background:#567659;border-color:#d6e09a;color:#fff8d3}#sitePanel .site-actions{display:flex;gap:5px;justify-content:space-between}#sitePanel [data-site-note]{color:#c7dbca}
+#sitePanel .site-policies[hidden],#sitePanel [data-site-note][hidden],#sitePanel .site-actions button[hidden]{display:none}@media(max-width:1280px){#hint{display:none}footer{gap:10px}}
 @media(max-width:760px){#landPreview{bottom:40px;max-width:40%;font-size:9px;padding:4px 6px}#sitePanel{max-height:calc(100% - 105px)}}
 @media(max-width:760px){#landPreview{left:auto;right:8px;transform:none}}
 #minimap{position:absolute;right:14px;bottom:15px;width:160px;height:120px;background:#172d2f;border:2px solid #c6b17d;border-radius:7px;box-shadow:0 6px 22px #071513b0;cursor:crosshair;image-rendering:pixelated;z-index:1}#minimap:focus-visible{outline:2px solid #8fffe1}@media(max-width:760px){#minimap{right:8px;bottom:68px;width:120px;height:90px}}
