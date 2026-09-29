@@ -494,7 +494,7 @@ function ai(dt){
    if(dist(p,target)>.65){p.goal=target;continue}
    p.goal=null;p.work+=dt;let duration=intent.kind==='explore'?2:2.8;if(p.work>=duration){p.work=0;p.intent=null;p.intentUntil=0;let home=nearest(buildings.filter(b=>b.owner===own&&b.type==='hut'&&b.progress===1),p)||nearest(buildings.filter(b=>b.owner===own&&b.progress===1),p);
     p.ambientReturn=intent.kind;p.ambientHome=home;
-    if(intent.kind==='hunt'){p.ambientCarry='game';p.job='RETURNING WITH GAME'}else if(intent.kind==='mine'){let ore=at(Math.round(target.x),Math.round(target.z));if(ore?.mineral){ore.mineral--;if(!ore.mineral)renderObjects()}p.ambientCarry='stone';p.job='HAULING STONE'}else p.job='RETURNING FROM SCOUTING';
+    if(intent.kind==='hunt'){p.ambientCarry='game';p.job='RETURNING WITH GAME'}else if(intent.kind==='mine'){let ore=at(Math.round(target.x),Math.round(target.z));if(ore?.mineral){ore.mineral--;ore.geology=Math.max(0,(ore.geology||0)-1);if(!ore.mineral)renderObjects()}p.ambientCarry='stone';p.job='HAULING STONE'}else p.job='RETURNING FROM SCOUTING';
     if(home)p.goal=approachSite(p,home);else finishAmbientTrip(p);p.idle=2+rand(Math.floor(elapsed),people.indexOf(p),seed+151)*3
    }continue}
   let site=intent?.kind==='build'?intent.site:null;
