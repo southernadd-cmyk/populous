@@ -11,7 +11,7 @@ const box=new THREE.BoxGeometry(1,1,1),sphere=new THREE.SphereGeometry(1,10,8),c
 const roofGeo=new THREE.BufferGeometry(),roofPoints=[[-.5,.45,0],[.5,.45,0],[-.5,0,.5],[.5,0,.5],[-.5,0,-.5],[.5,0,-.5]];
 roofGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,2,3,0,3,1,0,1,5,0,5,4,0,4,2,1,3,5,2,4,5,2,5,3].flatMap(i=>roofPoints[i]),3));roofGeo.computeVertexNormals();
 const mat=(c,extra={})=>new THREE.MeshStandardMaterial({color:c,roughness:.92,...extra});const landMats=[null,mat(0x988665),mat(0x869a66),mat(0x73a26a),mat(0x7e9569),mat(0xb9b8ae)],sideMats=[null,mat(0x605747),mat(0x5e6650),mat(0x52684b),mat(0x53624d),mat(0x777d7b)];const woodMat=mat(0x725746),roofMats=[mat(0x446a56),mat(0xa45043)],stoneMat=mat(0xc0ad83),wildMat=mat(0xc8c0a4),trunkMat=mat(0x654c38),leafMats=[mat(0x294e3c),mat(0x38664a),mat(0x54825a)],waterMat=mat(0x9cc4bc,{transparent:true,opacity:.35}),terraceGold=mat(0xd1bd7b),terraceRough=mat(0xb17b68),plotHighlight=mat(0x8fffe1,{emissive:0x216e58,emissiveIntensity:.6}),hoverLineMat=new THREE.LineBasicMaterial({color:0xe9fff8,transparent:true,opacity:.95,depthTest:false}),hoverResultMat=new THREE.LineBasicMaterial({color:0x8fffe1,transparent:true,opacity:.9,depthTest:false}),spiritBack=mat(0x172b30),sacredGround=mat(0xd6ba7b,{emissive:0x9a7140,emissiveIntensity:.45});
-const plasterMat=mat(0xdacba8),thatchMat=mat(0xb5a16d),timberMat=mat(0x583f31),masonryMat=mat(0x929e91),masonryLight=mat(0xd1c5a7),doorMat=mat(0x352c2b),windowMat=mat(0xf6d486,{emissive:0x9c6b24,emissiveIntensity:.45}),pebbleMat=mat(0xffffff),mineralMat=mat(0x9aa6b2,{metalness:.18});
+const plasterMat=mat(0xdacba8),thatchMat=mat(0xb5a16d),timberMat=mat(0x583f31),masonryMat=mat(0x929e91),masonryLight=mat(0xd1c5a7),doorMat=mat(0x352c2b),windowMat=mat(0xf6d486,{emissive:0x9c6b24,emissiveIntensity:.45}),pebbleMat=mat(0xffffff),mineralMat=mat(0x9aa6b2,{metalness:.18}),oreTraceMat=mat(0x66737b,{metalness:.08});
 const DEVOTION_GOAL=4000,FESTIVAL_COST=70,STONE_COST=20,GROVE_COST=12,MINERAL_COST=16,STONE_RITE_TERRACE=7,REGIONAL_FESTIVAL_REWARD=900,REGIONS=['North','Crossing','South'];
 const BUILDING_TIERS=[null,{name:'Hut',flat:0,born:0,age:0,wait:0,rooms:6},{name:'House',flat:4,born:3,age:25,wait:0,rooms:9},{name:'Fort',flat:6,born:6,age:85,wait:35,rooms:13},{name:'Castle',flat:8,born:10,age:160,wait:50,rooms:18}];
 const CAMPS=[{x:10,z:H/2},{x:W-11,z:H/2}];
@@ -21,6 +21,11 @@ let terrainLevels=[],terrainSlots=null,terrainHeights=null,pebbleSlots=null,pebb
 const instanceTransform=new THREE.Object3D();
 function newShrines(){return SHRINE_SPOTS.map(({x,z})=>({x,z,owner:2,projectOwner:2,progress:0,buildX:null,buildZ:null,spirit:0,lock:0}))}
 const rand=(x,y,s=seed)=>{let n=Math.imul(x+11,374761393)+Math.imul(y+23,668265263)+Math.imul(s,2246822519);n=Math.imul(n^(n>>>13),1274126177);return((n^(n>>>16))>>>0)/4294967296};
+function geologyAt(x,z){
+ let mirror=Math.min(x,W-1-x),coarse=rand(Math.floor(mirror/5),Math.floor(z/5),seed+301),mid=rand(Math.floor(mirror/2),Math.floor(z/2),seed+302),fine=rand(mirror,z,seed+303),vein=coarse*.58+mid*.3+fine*.12;
+ if(vein<.57)return 0;
+ return clamp(2+Math.floor((vein-.57)/.105),2,5)
+}
 const at=(x,z)=>x>=0&&z>=0&&x<W&&z<H?tiles[z*W+x]:null;const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);const height=(x,z)=>at(Math.round(x),Math.round(z))?.h||0;const pos=(x,z)=>new THREE.Vector3(x-W/2+.5,surfaceHeight(x+.5,z+.5)*.48,z-H/2+.5);
 function mesh(geo,material,parent,x,y,z,sx=1,sy=1,sz=1){let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
 function clear(group){while(group.children.length){let child=group.children[0];group.remove(child);if(child.isInstancedMesh)child.dispose();if(child.geometry&&!([box,sphere,cone,cyl,ringGeo,roofGeo].includes(child.geometry)))child.geometry.dispose()}}
@@ -56,7 +61,7 @@ function makeWorld(){
   let mirror=Math.min(x,W-1-x),island=Math.min(x,W-1-x,z,H-1-z);
   let noise=rand(Math.floor(mirror/3),Math.floor(z/3))*.7+rand(mirror,z)*.3;
   let h=island<2||noise<.16?0:clamp(Math.floor(noise*4.5),1,4);
-  tiles.push({h,tree:h>0&&h<=3&&rand(mirror,z,seed+1)>.76,mineral:0,wood:0,building:null,feature:null})
+  tiles.push({h,tree:h>0&&h<=3&&rand(mirror,z,seed+1)>.76,geology:geologyAt(x,z),mineral:0,wood:0,building:null,feature:null})
  }
  paintLandforms();
  for(let camp of CAMPS)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){let t=at(camp.x+dx,camp.z+dz);t.h=2;t.tree=false}
@@ -68,8 +73,8 @@ function makeWorld(){
   else t.h=2
  }
  for(let camp of CAMPS)for(let x of [camp.x,camp.x+1])for(let z of [camp.z+3,camp.z+4]){let t=at(x,z);t.h=2;t.tree=false}
- // Ecology follows the final terrain: woodland lives on low/mid land; mineral seams occur on high ground.
- for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z),mirror=Math.min(x,W-1-x);if(t.h>=4){t.tree=false;t.mineral=rand(mirror,z,seed+91)>.86?2+Math.floor(rand(mirror,z,seed+92)*3):0}else t.mineral=0}
+ // Ecology follows the final terrain. Geology is latent and fixed by the seed; only an explicit Expose Minerals action creates a mineable seam.
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z);t.mineral=0;if(t.h>=4)t.tree=false}
  for(let [owner,camp] of CAMPS.entries()){
   addBuilding(camp.x,camp.z,owner,'hearth',true);
   addBuilding(camp.x+(owner?2:-2),camp.z-1,owner,'hut',true);
@@ -218,7 +223,10 @@ function renderObjects(){
  }
  trunks.instanceMatrix.needsUpdate=true;trunks.castShadow=true;trunks.receiveShadow=true;
  for(let leaves of foliage){leaves.instanceMatrix.needsUpdate=true;leaves.castShadow=true;leaves.receiveShadow=true}
- for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z);if(!t.mineral||!t.h)continue;let p=pos(x,z),n=Math.min(3,t.mineral);for(let i=0;i<n;i++){let a=i*2.1+rand(x,z,seed+94)*2,s=.11+i*.018;mesh(sphere,mineralMat,objects,p.x+Math.cos(a)*.18,p.y+.07+s*.4,p.z+Math.sin(a)*.18,s,.08+s*.45,s)}}
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){let t=at(x,z);if(!t.h)continue;let p=pos(x,z);
+  if(t.mineral){let n=Math.min(3,t.mineral);for(let i=0;i<n;i++){let a=i*2.1+rand(x,z,seed+94)*2,s=.11+i*.018;mesh(sphere,mineralMat,objects,p.x+Math.cos(a)*.18,p.y+.07+s*.4,p.z+Math.sin(a)*.18,s,.08+s*.45,s)}}
+  else if(t.h>=4&&t.geology){let n=t.geology>=4?2:1;for(let i=0;i<n;i++){let a=i*2.7+rand(x,z,seed+194)*2.2,s=.045+(t.geology>=4?.012:0);mesh(sphere,oreTraceMat,objects,p.x+Math.cos(a)*.22,p.y+.035,p.z+Math.sin(a)*.22,s,.018,s*.72)}}
+ }
  for(let shrine of shrines)renderStone(shrine);
  for(let b of buildings)renderBuilding(b)
 }
@@ -323,13 +331,13 @@ function syncSitePolicies(owner){
 // Each number below is a fuzzy membership in [0,1]. Jobs compete using their
 // graded urgency rather than a fixed build/tend/wander priority list.
 function groveAllowed(tile){return !!tile&&tile.h>=1&&tile.h<=3&&!tile.building&&!tile.tree&&!tile.mineral}
-function mineralAllowed(tile){return !!tile&&tile.h>=4&&!tile.building&&!tile.tree&&!tile.mineral}
+function mineralAllowed(tile){return !!tile&&tile.h>=4&&tile.geology>0&&!tile.building&&!tile.tree&&!tile.mineral}
 function sacredResourceBlocked(x,z){return shrines.some(s=>s.x===x&&s.z===z||stoneFootprint(s,x,z))}
 function environmentFeatureAllowed(kind,x,z){let tile=at(x,z);return !sacredResourceBlocked(x,z)&&(kind==='grove'?groveAllowed(tile):kind==='mineral'?mineralAllowed(tile):false)}
 function environmentFeatureCost(kind){return kind==='grove'?GROVE_COST:kind==='mineral'?MINERAL_COST:Infinity}
 function placeEnvironmentFeature(kind,x,z,owner){
  let sh=people.find(p=>p.owner===owner&&p.type==='shaman'),cost=environmentFeatureCost(kind);if(!sh||faith[owner]<cost||dist(sh,{x,z})>5.5||!environmentFeatureAllowed(kind,x,z))return false;
- let tile=at(x,z);if(kind==='grove')tile.tree=true;else tile.mineral=4;faith[owner]-=cost;renderObjects();
+ let tile=at(x,z);if(kind==='grove')tile.tree=true;else tile.mineral=tile.geology;faith[owner]-=cost;renderObjects();
  log(owner===0?(kind==='grove'?'A new grove takes root. Hunters and builders will be drawn to its trees.':'A mineral seam is exposed. Miners will begin working it when free.'):(kind==='grove'?'Ember planted woodland to draw hunters and supply timber.':'Ember exposed a mineral seam to draw miners.'));
  return true
 }
@@ -337,7 +345,7 @@ function environmentCandidate(kind,home){
  let best=null;
  for(let z=Math.max(1,home.z-10);z<=Math.min(H-2,home.z+10);z++)for(let x=Math.max(1,home.x-10);x<=Math.min(W-2,home.x+10);x++){
   if(!environmentFeatureAllowed(kind,x,z))continue;let d=dist(home,{x,z});if(d<2.5||d>10)continue;
-  let cluster=resourceCluster(kind==='grove'?'hunt':'mine',x,z),ideal=kind==='grove'?5.5:7,score=Math.abs(d-ideal)-(kind==='grove'?cluster*.24:cluster*.12)+rand(x,z,seed+211)*1.2;
+  let cluster=resourceCluster(kind==='grove'?'hunt':'mine',x,z),ideal=kind==='grove'?5.5:7,richness=kind==='mineral'?(at(x,z).geology||0):0,score=Math.abs(d-ideal)-(kind==='grove'?cluster*.24:cluster*.12)-richness*.28+rand(x,z,seed+211)*1.2;
   if(!best||score<best.score)best={kind,x,z,home,score}
  }
  return best
@@ -508,9 +516,9 @@ function ping(x,z,material){let p=pos(x,z),marker=mesh(ringGeo,material,fxGroup,
 function finish(win){if(ended)return;ended=win?'victory':'defeat';running=false;$('#result').hidden=false;$('#result').innerHTML=`<h2>${win?'YOUR FAITH FLOURISHES':'EMBER REACHES THE PEOPLE FIRST'}</h2><p>${Math.floor(devotion[0])} to ${Math.floor(devotion[1])} devotion · ${regionalVows[0].size} to ${regionalVows[1].size} regional festivals. ${win?'Your villages and stones carried faith across the whole world.':'Establish sites in the north, crossing and south, then hold a festival in each region.'}</p><button id="again">PLAY AGAIN</button>`;$('#again').onclick=()=>{makeWorld();openGuide(true)}}
 const commands=[['move','MOVE SHAMAN','Free'],['stone','BUILD STONE','20 faith'],['inspect','INSPECT','Read the world']];const spells=[['grove','PLANT GROVE','12 faith'],['mineral','EXPOSE MINERALS','16 faith'],['raise','RAISE LAND','4 faith'],['lower','LOWER LAND','4 faith'],['bridge','LAND BRIDGE','30 faith']];
 function setupButtons(){for(let [el,items] of [['#commands',commands],['#spells',spells]])$(el).innerHTML=items.map(([id,label,cost])=>`<button data-mode="${id}">${label}<small>${cost}</small></button>`).join('');document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;if(mode!=='inspect')selectedSite=null;$('#landPreview').hidden=true;clear(hoverGroup);updateUI()})}
-const spellCosts={grove:GROVE_COST,mineral:MINERAL_COST,raise:4,lower:4,bridge:30};const hints={move:'Move your shaman through the world. Followers react to the landscape you create.',stone:'Prepare a flat 2×2 plot containing a sacred rune. Bring your shaman within three tiles, then build the stone circle.',inspect:'Inspect homes, followers, resources and sacred sites to understand how the world is responding.',grove:'Plant trees on clear height 1–3 land. Dense nearby woodland attracts more hunters and also supplies construction timber.',mineral:'Expose a mineral seam on clear height 4–5 ground. Rich nearby deposits attract more miners and return building stone.',raise:'Raise one tile for 4 faith. Level land creates room for settlements and sacred terraces.',lower:'Lower one tile for 4 faith. Cut routes, create water, or level useful ground.',bridge:'Turn water into low land to create a route across rivers and lakes.'};
+const spellCosts={grove:GROVE_COST,mineral:MINERAL_COST,raise:4,lower:4,bridge:30};const hints={move:'Move your shaman through the world. Followers react to the landscape you create.',stone:'Prepare a flat 2×2 plot containing a sacred rune. Bring your shaman within three tiles, then build the stone circle.',inspect:'Inspect homes, followers, resources and sacred sites to understand how the world is responding.',grove:'Plant trees on clear height 1–3 land. Dense nearby woodland attracts more hunters and also supplies construction timber.',mineral:'Reveal a seam only where height 4–5 ground shows mineral-bearing rock. Rich geology produces larger deposits and attracts more miners.',raise:'Raise one tile for 4 faith. Level land creates room for settlements and sacred terraces.',lower:'Lower one tile for 4 faith. Cut routes, create water, or level useful ground.',bridge:'Turn water into low land to create a route across rivers and lakes.'};
 function action(x,z){$('#landPreview').hidden=true;clear(hoverGroup);let t=at(x,z);if(!t||ended)return;let point={x,z},range=dist(shaman,point),site=nearest(shrines,point);
- if(mode==='inspect'){let sacred=shrines.find(s=>Math.max(Math.abs(s.x-x),Math.abs(s.z-z))===1);if(sacred&&sacred.owner===0){selectedSite=sacred;updateSitePanel();toast(`Terrace ${terraceScore(sacred)}/8 level · tile height ${t.h}, circle height ${height(sacred.x,sacred.z)}. Four tiles maximise income; seven prepare a regional festival.`);return}let occupied=t.building,nearHome=nearest(buildings.filter(b=>b.owner===0&&b.type==='hut'),point),focus=site&&dist(site,point)<1.5&&site.owner!==1&&site.projectOwner!==1?site:occupied?.owner===0&&occupied.type==='hut'?occupied:nearHome&&dist(nearHome,point)<.9?nearHome:null;if(focus){selectedSite=focus;updateSitePanel();toast(focus.owner===2?focus.projectOwner===0?`Your stone circle is ${Math.floor(focus.progress*100)}% built.`:'Prepare a level 2×2 plot and build a stone circle here.':focus.progress<1?`${BUILDING_TIERS[focus.level].name} is ${Math.floor(focus.progress*100)}% built.`:`${BUILDING_TIERS[focus.level].name} inspected. Its growth follows the surrounding land, resources and available workforce.`);return}if(site&&dist(site,point)<1.5)toast(`Sacred site · ${site.owner===2?site.projectOwner===1?'Ember building':'empty':site.owner===0?'yours':'Ember'}${site.owner<2?' · spirit '+Math.ceil(site.spirit)+'/100':''}`);else{let person=nearest(people,point),building=occupied||nearest(buildings,point);if(person&&dist(person,point)<.7)toast(`${person.owner===2?'Wildman':person.owner?'Ember':'Verdant'} ${person.type} · ${person.job||'IDLE'}`);else if(building&&(building===occupied||dist(building,point)<.9))toast(`${building.owner?'Ember':'Your'} ${building.type==='hut'?BUILDING_TIERS[building.level].name.toLowerCase():building.type} · ${building.blessed?'belief '+Math.round(siteBelief(building))+'% '+(siteNeeds(building,building.owner).healthy?'↑':'↓ workforce stretched')+' · ':''}${Math.round(building.progress*100)}% built${building.type==='hut'&&building.level<4?` · ${growthDetails(building)}`:''}`);else toast(`${t.feature==='river'?'River':t.feature==='lake'?'Lake':t.h===5?'Mountain':t.h>=3?'Hill':'Land'} · height ${t.h} · ${t.tree?'trees':t.mineral?`mineral deposit ${t.mineral}/4`:'clear'}`)}return}
+ if(mode==='inspect'){let sacred=shrines.find(s=>Math.max(Math.abs(s.x-x),Math.abs(s.z-z))===1);if(sacred&&sacred.owner===0){selectedSite=sacred;updateSitePanel();toast(`Terrace ${terraceScore(sacred)}/8 level · tile height ${t.h}, circle height ${height(sacred.x,sacred.z)}. Four tiles maximise income; seven prepare a regional festival.`);return}let occupied=t.building,nearHome=nearest(buildings.filter(b=>b.owner===0&&b.type==='hut'),point),focus=site&&dist(site,point)<1.5&&site.owner!==1&&site.projectOwner!==1?site:occupied?.owner===0&&occupied.type==='hut'?occupied:nearHome&&dist(nearHome,point)<.9?nearHome:null;if(focus){selectedSite=focus;updateSitePanel();toast(focus.owner===2?focus.projectOwner===0?`Your stone circle is ${Math.floor(focus.progress*100)}% built.`:'Prepare a level 2×2 plot and build a stone circle here.':focus.progress<1?`${BUILDING_TIERS[focus.level].name} is ${Math.floor(focus.progress*100)}% built.`:`${BUILDING_TIERS[focus.level].name} inspected. Its growth follows the surrounding land, resources and available workforce.`);return}if(site&&dist(site,point)<1.5)toast(`Sacred site · ${site.owner===2?site.projectOwner===1?'Ember building':'empty':site.owner===0?'yours':'Ember'}${site.owner<2?' · spirit '+Math.ceil(site.spirit)+'/100':''}`);else{let person=nearest(people,point),building=occupied||nearest(buildings,point);if(person&&dist(person,point)<.7)toast(`${person.owner===2?'Wildman':person.owner?'Ember':'Verdant'} ${person.type} · ${person.job||'IDLE'}`);else if(building&&(building===occupied||dist(building,point)<.9))toast(`${building.owner?'Ember':'Your'} ${building.type==='hut'?BUILDING_TIERS[building.level].name.toLowerCase():building.type} · ${building.blessed?'belief '+Math.round(siteBelief(building))+'% '+(siteNeeds(building,building.owner).healthy?'↑':'↓ workforce stretched')+' · ':''}${Math.round(building.progress*100)}% built${building.type==='hut'&&building.level<4?` · ${growthDetails(building)}`:''}`);else toast(`${t.feature==='river'?'River':t.feature==='lake'?'Lake':t.h===5?'Mountain':t.h>=3?'Hill':'Land'} · height ${t.h} · ${t.tree?'trees':t.mineral?`exposed mineral seam ${t.mineral} remaining`:t.h>=4&&t.geology?`${t.geology>=4?'rich ':' '}mineral-bearing rock`:t.h>=4?'barren high ground':'clear'}`)}return}
  if(mode==='move'){if(!t.h)return toast('Your shaman cannot cross water.');shaman.goal=point;ping(x,z,gem[0]);toast('Shaman moving toward the marker.');return}
  if(mode==='stone'){let sacred=stoneSiteForPlot(x,z);if(!sacred)return toast('Build a stone circle on a 2×2 plot containing a sacred rune.');if(sacred.owner!==2||sacred.projectOwner!==2)return toast(sacred.owner===2?'Followers are already building a circle here.':'A circle already stands here. Contest its spirit with your shaman.');if(!canBuildStone(sacred,x,z))return toast('Shape these four tiles to one level, clear height. Hover to preview a valid 2×2 foundation.');if(dist(shaman,sacred)>3)return toast('Move your shaman within three tiles of this sacred site first.');if(faith[0]<STONE_COST)return toast(`Need ${STONE_COST} faith to begin the circle.`);startStoneProject(sacred,x,z,0);updateUI();return}
 
@@ -534,7 +542,7 @@ function drawMinimap(force=false){
  let canvas=$('#minimap');if(typeof canvas?.getContext!=='function'||!tiles.length)return;
  let now=performance.now();if(!force&&now-lastMini<250)return;lastMini=now;
  let ctx=canvas.getContext('2d'),palette=['#31596b','#8b795a','#76965f','#68a16c','#8a9c71','#cbc7bd'];
- for(let z=0;z<H;z++)for(let x=0;x<W;x++){let tile=at(x,z);ctx.fillStyle=palette[tile.h];ctx.fillRect(x*3,z*3,3,3);if(tile.tree){ctx.fillStyle='#284f3e';ctx.fillRect(x*3+1,z*3+1,2,2)}}
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++){let tile=at(x,z);ctx.fillStyle=palette[tile.h];ctx.fillRect(x*3,z*3,3,3);if(tile.tree){ctx.fillStyle='#284f3e';ctx.fillRect(x*3+1,z*3+1,2,2)}else if(tile.mineral){ctx.fillStyle='#d7e0e4';ctx.fillRect(x*3+1,z*3+1,2,2)}}
  for(let b of buildings){ctx.fillStyle=b.owner===0?'#a5efd3':'#ffad8a';ctx.fillRect(b.x*3-1,b.z*3-1,5,5)}
  for(let site of shrines){ctx.fillStyle=site.owner===0?'#8fffe1':site.owner===1?'#ffac83':site.projectOwner===0?'#6ccbb4':site.projectOwner===1?'#d48168':'#f3d487';ctx.beginPath();ctx.arc(site.x*3+1.5,site.z*3+1.5,4.5,0,Math.PI*2);ctx.fill()}
  for(let p of people.filter(p=>p.type==='shaman')){ctx.strokeStyle=p.owner===0?'#e7fff2':'#ffdbc8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x*3+1.5,p.z*3+1.5,3.5,0,Math.PI*2);ctx.stroke()}
