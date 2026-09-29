@@ -55,7 +55,7 @@
       <section id="panel-land" role="tabpanel" aria-labelledby="tab-land" tabindex="0" hidden>
         <h3>Settlements emerge from the land</h3>
         <p>A new hut needs a <b>clear, level 2×2 plot</b> near your existing settlement or an owned stone circle. You do not place huts directly. When useful ground exists and the tribe needs room, settlers claim it automatically.</p>
-        <p><b>Raise Land</b> and <b>Lower Land</b> each change one tile by one height level for 4 Faith. Height 0 is water; land ranges from 1 to 5. A single change can open a new plot, allow an existing home to grow, prepare a sacred terrace or alter a route.</p>
+        <p><b>Raise Land</b> and <b>Lower Land</b> each change one tile by one height level for 4 Faith. Height 0 is water; land ranges from 1 to 5. Heights <b>1–3 support woodland</b>; heights <b>4–5 expose mineral country</b>. Crossing those thresholds while sculpting removes an incompatible grove or mineral seam. A single land change can therefore alter settlement space, routes and the local economy at the same time.</p>
         <h4>Home upgrades</h4>
         <p>Homes use the village-wide workforce. They grow automatically when land, household growth and age requirements are met. Hunting provisions speed population growth; mined stone shortens the wait toward forts and castles.</p>
         <div class="intro-table-wrap"><table class="intro-table"><thead><tr><th>Stage</th><th>Level neighbours</th><th>Growth</th><th>Age</th><th>Beds</th></tr></thead><tbody><tr><th>Hut</th><td>—</td><td>—</td><td>Built</td><td>6</td></tr><tr><th>House</th><td>4</td><td>3</td><td>25s</td><td>9</td></tr><tr><th>Fort</th><td>6 + clear 2×2</td><td>6</td><td>85s + 35s after house</td><td>13</td></tr><tr><th>Castle</th><td>8 + clear 3×3</td><td>10</td><td>160s + 50s after fort</td><td>18</td></tr></tbody></table></div>
@@ -64,7 +64,7 @@
       <section id="panel-followers" role="tabpanel" aria-labelledby="tab-followers" tabindex="0" hidden>
         <h3>Influence people through the world</h3>
         <p>Braves choose their own work. They build available projects, gather timber, tend belief, worship developed sacred places, defend threatened stones, hunt, mine and explore.</p>
-        <div class="intro-policy"><p><b>Groves</b><span>Nearby trees provide construction timber and hunting grounds. Planting more woodland increases the opportunities for those jobs.</span></p><p><b>Mineral seams</b><span>Visible deposits attract miners. Returned stone helps houses mature into forts and castles sooner. Deposits are gradually exhausted.</span></p><p><b>Open land</b><span>Distant clear ground encourages scouting. Scouts return discoveries that generate a small Faith reward.</span></p></div>
+        <div class="intro-policy"><p><b>Groves · height 1–3</b><span>Nearby trees provide construction timber and hunting grounds. Dense woodland around a settlement pulls more spare workers toward hunting; active building projects also draw woodcutters into it.</span></p><p><b>Mineral seams · height 4–5</b><span>Visible deposits attract miners. Rich clusters pull more miners than isolated seams. Returned stone helps houses mature into forts and castles sooner, while deposits are gradually exhausted.</span></p><p><b>Open land</b><span>Distant clear country encourages scouting. If woodland or minerals dominate locally, fewer spare workers scout; large open surroundings make exploration comparatively attractive.</span></p></div>
         <p>There are no Grow, Worship or Guard settings. Sacred terraces themselves attract worshippers; a threatened stone attracts a keeper automatically. If you want different behaviour, alter the landscape that makes that behaviour useful.</p>
       </section>
       <section id="panel-stones" role="tabpanel" aria-labelledby="tab-stones" tabindex="0" hidden>
@@ -84,8 +84,8 @@
         <h3>Every spell changes the environment</h3>
         <p>Your shaman must be within <b>5.5 tiles</b> of the target for these environmental powers. Invalid targets do not spend Faith.</p>
         <div class="intro-actions">
-          <article data-spell="grove"><h4>Plant Grove <span>12 Faith</span></h4><p>Add trees to clear land. Trees supply construction timber and create hunting opportunities, so woodland changes how nearby workers use their time.</p></article>
-          <article data-spell="mineral"><h4>Expose Minerals <span>16 Faith</span></h4><p>Create a visible mineral seam on clear land. Miners work deposits automatically and return stone that accelerates later building development.</p></article>
+          <article data-spell="grove"><h4>Plant Grove <span>12 Faith</span></h4><p>Add trees to clear <b>height 1–3</b> land. Dense woodland supplies construction timber and increases the local pull toward hunting. Raising the tile into high ground removes the grove.</p></article>
+          <article data-spell="mineral"><h4>Expose Minerals <span>16 Faith</span></h4><p>Create a visible seam on clear <b>height 4–5</b> ground. Nearby rich deposits increase the local pull toward mining. Lowering the tile below height 4 removes the seam.</p></article>
           <article data-spell="raise"><h4>Raise Land <span>4 Faith</span></h4><p>Raise one tile by one level, up to height 5. Use it to create settlement plots, terraces, routes and higher ground.</p></article>
           <article data-spell="lower"><h4>Lower Land <span>4 Faith</span></h4><p>Lower one tile by one level, down to water at height 0. Use it to level useful ground or cut routes.</p></article>
           <article data-spell="bridge"><h4>Land Bridge <span>30 Faith</span></h4><p>Turn water along a short line into low land, changing movement routes across rivers and lakes.</p></article>
@@ -105,6 +105,6 @@
     <div class="intro-footer"><span>SHAPE · BUILD · CELEBRATE</span><button id="closeHelp" class="intro-play">PLAY THE WORLD <span aria-hidden="true">→</span></button></div>
   </div>
 </dialog>
-<script type="module" src="src/main.js?v=52"></script>
+<script type="module" src="src/main.js?v=53"></script>
 </body>
 </html>
