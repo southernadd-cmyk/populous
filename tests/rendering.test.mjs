@@ -21,7 +21,7 @@ test('inspect opens a read-only site card for friendly homes',()=>{
 test('terrain sculpting preview exposes the logical tile and resulting height',()=>{
  assert.match(source,/function hoverTileOutline\(x,z,material=hoverLineMat/);
  assert.match(source,/hoverTileOutline\(x,z\)/);
- assert.match(source,/H\\\$\{at\(x,z\)\.h\} → H\\\$\{at\(x,z\)\.h\+\(mode==='raise'\?1:-1\)\}/);
+ assert.match(source,/H\$\{at\(x,z\)\.h\} → H\$\{at\(x,z\)\.h\+\(mode==='raise'\?1:-1\)\}/);
  assert.match(source,/if\(highlighted\.length\)hoverFootprint\(highlighted\)/);
 });
 
