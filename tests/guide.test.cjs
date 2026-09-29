@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const game = fs.readFileSync(path.join(root, 'src/main.js'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
 test('every field guide tab has a corresponding labelled panel', () => {
   const tabs = [...html.matchAll(/<button id="tab-([a-z]+)" role="tab" aria-controls="panel-([a-z]+)"[^>]+data-guide-tab="([a-z]+)"/g)];
@@ -26,4 +27,11 @@ test('the guide explains every command and spell offered by the game', () => {
     const inGuide = [...html.matchAll(new RegExp(`<article data-${attribute}="([a-z]+)"`, 'g'))].map(([, id]) => id);
     assert.deepEqual(inGuide, inGame);
   }
+});
+
+
+test('inspect, toast and terrain status overlays have separate screen lanes', () => {
+  assert.match(css, /#sitePanel\{[^}]*top:72px;bottom:auto/);
+  assert.match(css, /#toast\{[^}]*bottom:62px/);
+  assert.match(css, /#landPreview\{[^}]*bottom:18px/);
 });
