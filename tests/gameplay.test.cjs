@@ -312,7 +312,7 @@ test('Ember uses the same environmental placement rules and costs as the player'
   g.eval(`var emberShaman=people.find(p=>p.owner===1&&p.type==='shaman');
     var emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
     for(let z=Math.max(1,emberHome.z-10);z<=Math.min(H-2,emberHome.z+10);z++)for(let x=Math.max(1,emberHome.x-10);x<=Math.min(W-2,emberHome.x+10);x++){let t=at(x,z);if(t&&!t.building){t.tree=false;t.mineral=0}}
-    var groveSite=null;for(let z=Math.max(1,emberHome.z-8);z<=Math.min(H-2,emberHome.z+8)&&!groveSite;z++)for(let x=Math.max(1,emberHome.x-8);x<=Math.min(W-2,emberHome.x+8)&&!groveSite;x++){let t=at(x,z);if(t&&t.h>=1&&t.h<=3&&!t.building&&!sacredResourceBlocked(x,z))groveSite={x,z}}
+    var groveSite=null;for(let z=Math.max(1,emberHome.z-8);z<=Math.min(H-2,emberHome.z+8)&&!groveSite;z++)for(let x=Math.max(1,emberHome.x-8);x<=Math.min(W-2,emberHome.x+8)&&!groveSite;x++){let t=at(x,z);if(environmentFeatureAllowed('grove',x,z))groveSite={x,z}}
     emberShaman.x=groveSite.x;emberShaman.z=groveSite.z;faith[1]=100`);
   const before=g.eval('faith[1]');
   assert.equal(g.eval("placeEnvironmentFeature('grove',groveSite.x,groveSite.z,1)"),true);
@@ -340,7 +340,7 @@ test('Ember chooses resource-poor settlements for environmental intervention',()
 test('Ember must move its shaman into range before creating an environmental feature',()=>{
   const g=game(.217);
   g.eval(`var emberShaman=people.find(p=>p.owner===1&&p.type==='shaman'),emberHome=buildings.find(b=>b.owner===1&&b.type==='hut'&&b.progress===1);
-    var ecologyTarget=null;for(let z=1;z<H-1&&!ecologyTarget;z++)for(let x=W/2;x<W-1&&!ecologyTarget;x++){let t=at(x,z);if(groveAllowed(t)&&!sacredResourceBlocked(x,z)&&dist(emberShaman,{x,z})>5.5)ecologyTarget={kind:'grove',x,z}}
+    var ecologyTarget=null;for(let z=1;z<H-1&&!ecologyTarget;z++)for(let x=W/2;x<W-1&&!ecologyTarget;x++){let t=at(x,z);if(environmentFeatureAllowed('grove',x,z)&&dist(emberShaman,{x,z})>5.5)ecologyTarget={kind:'grove',x,z}}
     faith[1]=120;emberShaman.environmentGoal=ecologyTarget;ai(.1)`);
   assert.equal(g.eval('at(ecologyTarget.x,ecologyTarget.z).tree'),false,'the feature is not created remotely');
   assert.equal(g.eval("emberShaman.job==='SEEKING GROVE SITE'"),true);
@@ -358,7 +358,7 @@ test('player action set contains no direct labour-management commands',()=>{
 
 test('groves use low-mid land while minerals require mineral-bearing high ground',()=>{
   const g=game(.217);
-  const low=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=1&&t.h<=3&&!t.tree&&!t.mineral&&!t.building&&!shrines.some(s=>s.x===x&&s.z===z))return {x,z}}})()`);
+  const low=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(environmentFeatureAllowed('grove',x,z))return {x,z}}})()`);
   const bearing=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&t.geology>0&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z))return {x,z}}})()`);
   const barren=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.tree&&!t.mineral&&!t.building&&!sacredResourceBlocked(x,z)){t.geology=0;return {x,z}}}})()`);
   assert.ok(low&&bearing&&barren);
@@ -415,6 +415,33 @@ test('local resource density changes the environmental pull around a settlement'
   assert.ok(g.eval('mixedEnv.open<emptyEnv.open'),'resource development reduces the relative amount of open scouting country');
 });
 
+test('Plant Grove creates a cluster with finite timber rather than one permanent tree',()=>{
+  const g=game(.217);
+  g.eval(`var groveCast=null;for(let z=2;z<H-2&&!groveCast;z++)for(let x=2;x<W/2&&!groveCast;x++){if(environmentFeatureAllowed('grove',x,z)&&dist(shaman,{x,z})<=5.5)groveCast={x,z}};faith[0]=100;var groveCount=groveFootprint(groveCast.x,groveCast.z).length;placeEnvironmentFeature('grove',groveCast.x,groveCast.z,0)`);
+  assert.ok(g.eval('groveCount>=3'));
+  assert.equal(g.eval(`GROVE_OFFSETS.map(([dx,dz])=>at(groveCast.x+dx,groveCast.z+dz)).filter(t=>t?.tree).length`),g.eval('groveCount'));
+  assert.equal(g.eval(`GROVE_OFFSETS.map(([dx,dz])=>at(groveCast.x+dx,groveCast.z+dz)).filter(t=>t?.tree).every(t=>t.wood===TREE_TIMBER_MAX)`),true);
+});
+
+test('builders consume timber in units before a tree is removed',()=>{
+  const g=game(.217);
+  g.eval(`var timberSpot=null;for(let z=2;z<H-2&&!timberSpot;z++)for(let x=2;x<W/2&&!timberSpot;x++){let t=at(x,z);if(t.h>=1&&t.h<=3&&!t.building&&!sacredResourceBlocked(x,z))timberSpot={x,z}};var timberTree=at(timberSpot.x,timberSpot.z);timberTree.tree=true;timberTree.wood=TREE_TIMBER_MAX;timberTree.regrowAt=0`);
+  assert.equal(g.eval('takeTimber(timberSpot.x,timberSpot.z)'),true);
+  assert.equal(g.eval('timberTree.tree'),true,'first load thins a mature tree but leaves it standing');
+  assert.equal(g.eval('timberTree.wood'),g.eval('TREE_TIMBER_MAX-1'));
+  assert.equal(g.eval('takeTimber(timberSpot.x,timberSpot.z)'),true);
+  assert.equal(g.eval('timberTree.tree'),false,'tree is removed only when its timber reserve is exhausted');
+  assert.ok(g.eval('timberTree.regrowAt>elapsed'));
+});
+
+test('harvested woodland regrows only when surrounding trees survive',()=>{
+  const g=game(.217);
+  g.eval(`var regrowSpot={x:20,z:20};for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){let t=at(regrowSpot.x+dx,regrowSpot.z+dz);if(t){t.h=2;t.building=null;t.mineral=0;t.tree=false;t.wood=0;t.regrowAt=0}};let cut=at(regrowSpot.x,regrowSpot.z);cut.regrowAt=1;elapsed=2;at(19,20).tree=true;at(19,20).wood=2;at(21,20).tree=true;at(21,20).wood=2;updateWoodland()`);
+  assert.equal(g.eval('at(regrowSpot.x,regrowSpot.z).tree'),true,'surviving woodland seeds the harvested tile');
+  assert.equal(g.eval('at(regrowSpot.x,regrowSpot.z).wood'),1,'regrowth begins as young woodland');
+  g.eval(`var isolated={x:25,z:20};let t=at(isolated.x,isolated.z);t.h=2;t.building=null;t.mineral=0;t.tree=false;t.wood=0;t.regrowAt=1;for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){if(!dx&&!dz)continue;let q=at(isolated.x+dx,isolated.z+dz);if(q)q.tree=false}elapsed=2;updateWoodland()`);
+  assert.equal(g.eval('at(isolated.x,isolated.z).tree'),false,'isolated clear-cut ground does not regenerate by itself');
+});
 test('useful level ground is enough for settlers to plan homes without a player build order',()=>{
   const g=game(.217);
   const plan=g.eval(`(()=>{for(let z=3;z<H-3;z++)for(let x=2;x<W/2;x++)if(dist(shaman,{x,z})<5.5)for(let dir of [-1,1]){let result=terrainBrush(x,z,dir);if(result.newPlot)return {x,z,dir,plot:result.newPlot}}})()`);
