@@ -125,15 +125,18 @@ test('workers respond to graded belief, distance and unfinished construction', (
   assert.ok(g.eval('fuzzyNear(5)>fuzzyNear(9)&&fuzzyNear(9)>fuzzyNear(13)'));
 });
 
-test('spare followers can hunt, mine and explore away from the village', () => {
+test('spare followers find jobs from terrain-linked environmental opportunities', () => {
   const g = game(.217);
   g.eval(`for(let b of buildings.filter(b=>b.owner===0))b.progress=1;
     var roamingWorker=people.find(p=>p.owner===0&&p.type==='brave');
-    roamingWorker.intent=null;roamingWorker.workSite=null;roamingWorker.supportSite=null;`);
+    roamingWorker.intent=null;roamingWorker.workSite=null;roamingWorker.supportSite=null;
+    var localHome=nearest(buildings.filter(b=>b.owner===0&&b.type==='hut'&&b.progress===1),roamingWorker);
+    for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){let t=at(x,z);if(dist({x,z},localHome)<=15){t.mineral=0}}
+    var high=null;for(let z=1;z<H-1&&!high;z++)for(let x=1;x<W-1&&!high;x++){let t=at(x,z);if(t.h>=4&&!t.tree&&!t.building&&dist({x,z},localHome)>3&&dist({x,z},localHome)<15)high={x,z}}
+    at(high.x,high.z).mineral=4;`);
   assert.ok(g.eval("ambientTarget(roamingWorker,'hunt')"), 'woodland provides a hunting destination');
-  g.eval("for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){let t=at(x,z);if(t.h&&!t.tree&&!t.building&&dist({x,z},roamingWorker)>3&&dist({x,z},roamingWorker)<15){t.mineral=4;break}}");
-  assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'a mineral seam provides a mining destination');
-  assert.ok(g.eval("ambientTarget(roamingWorker,'explore')"), 'distant land provides an exploration destination');
+  assert.ok(g.eval("ambientTarget(roamingWorker,'mine')"), 'high-ground mineral seams provide mining destinations');
+  assert.ok(g.eval("ambientTarget(roamingWorker,'explore')"), 'distant open land provides an exploration destination');
   assert.equal(g.eval("['hunt','mine','explore'].every(kind=>validWorkerIntent({kind,site:ambientTarget(roamingWorker,kind)},0))"), true);
 });
 
@@ -307,14 +310,44 @@ test('player action set contains no direct labour-management commands',()=>{
   assert.equal(g.eval("spells.some(s=>s[0]==='mineral')"),true);
 });
 
-test('planting groves and exposing minerals change worker opportunities on the map',()=>{
+test('groves belong to low-mid land and minerals belong to high ground',()=>{
   const g=game(.217);
-  const point=g.eval(`(()=>{for(let z=3;z<H-3;z++)for(let x=3;x<W/2;x++){let t=at(x,z);if(t.h&&!t.tree&&!t.mineral&&!t.building&&dist(shaman,{x,z})<5)return {x,z}}})()`);
-  assert.ok(point);
-  g.eval(`faith[0]=100;mode='grove';action(${point.x},${point.z})`);
-  assert.equal(g.eval(`at(${point.x},${point.z}).tree`),true);
-  g.eval(`at(${point.x},${point.z}).tree=false;mode='mineral';action(${point.x},${point.z})`);
-  assert.equal(g.eval(`at(${point.x},${point.z}).mineral`),4);
+  const low=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=1&&t.h<=3&&!t.tree&&!t.mineral&&!t.building&&!shrines.some(s=>s.x===x&&s.z===z))return {x,z}}})()`);
+  const high=g.eval(`(()=>{for(let z=2;z<H-2;z++)for(let x=2;x<W-2;x++){let t=at(x,z);if(t.h>=4&&!t.tree&&!t.mineral&&!t.building)return {x,z}}})()`);
+  assert.ok(low&&high);
+  assert.equal(g.eval(`groveAllowed(at(${low.x},${low.z}))`),true);
+  assert.equal(g.eval(`mineralAllowed(at(${low.x},${low.z}))`),false);
+  assert.equal(g.eval(`mineralAllowed(at(${high.x},${high.z}))`),true);
+  assert.equal(g.eval(`groveAllowed(at(${high.x},${high.z}))`),false);
+
+  g.eval(`faith[0]=100;shaman.x=${low.x};shaman.z=${low.z};mode='grove';action(${low.x},${low.z})`);
+  assert.equal(g.eval(`at(${low.x},${low.z}).tree`),true);
+  g.eval(`shaman.x=${high.x};shaman.z=${high.z};mode='mineral';action(${high.x},${high.z})`);
+  assert.equal(g.eval(`at(${high.x},${high.z}).mineral`),4);
+});
+
+test('sculpting across ecological height bands removes incompatible resources',()=>{
+  const g=game(.217);
+  g.eval(`var ecoTile=at(6,6);ecoTile.building=null;ecoTile.h=3;ecoTile.tree=true;ecoTile.mineral=0;terrainBrush(6,6,1,true,0)`);
+  assert.equal(g.eval('at(6,6).h'),4);
+  assert.equal(g.eval('at(6,6).tree'),false,'woodland disappears when raised into mineral country');
+  g.eval(`at(6,6).mineral=4;terrainBrush(6,6,-1,true,0)`);
+  assert.equal(g.eval('at(6,6).h'),3);
+  assert.equal(g.eval('at(6,6).mineral'),0,'mineral seam disappears when lowered below high ground');
+});
+
+test('local resource density changes the environmental pull around a settlement',()=>{
+  const g=game(.217);
+  g.eval(`var ecoHome=buildings.find(b=>b.owner===0&&b.type==='hut'&&b.progress===1);
+    for(let z=Math.max(1,ecoHome.z-10);z<=Math.min(H-2,ecoHome.z+10);z++)for(let x=Math.max(1,ecoHome.x-10);x<=Math.min(W-2,ecoHome.x+10);x++){let t=at(x,z);if(t&&!t.building){t.tree=false;t.mineral=0}}
+    var emptyEnv=localEnvironment(ecoHome);
+    for(let [dx,dz] of [[4,0],[5,0],[4,1],[5,1],[4,-1],[5,-1]]){let t=at(ecoHome.x+dx,ecoHome.z+dz);t.h=2;t.tree=true}
+    var forestEnv=localEnvironment(ecoHome);
+    for(let [dx,dz] of [[-5,0],[-6,0],[-5,1]]){let t=at(ecoHome.x+dx,ecoHome.z+dz);t.h=4;t.tree=false;t.mineral=4}
+    var mixedEnv=localEnvironment(ecoHome)`);
+  assert.ok(g.eval('forestEnv.hunt>emptyEnv.hunt'),'more nearby woodland increases hunting pull');
+  assert.ok(g.eval('mixedEnv.mine>forestEnv.mine'),'nearby rich seams increase mining pull');
+  assert.ok(g.eval('mixedEnv.open<emptyEnv.open'),'resource development reduces the relative amount of open scouting country');
 });
 
 test('useful level ground is enough for settlers to plan homes without a player build order',()=>{
